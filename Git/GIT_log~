@@ -1,0 +1,395 @@
+--------------------------------------------------------
+Installation Instructions:
+
+	-> Install GIT and dependencies
+
+1 - sudo apt-get install git git-core git-doc gitk git-gui(?) meld
+
+	-> Config git configurations
+	-> Username
+
+2 - git config --global user.name "<user_name"
+
+	-> Email
+
+3 - git config --global user.email "<user_email>"
+
+	-> Default Editor
+
+4 - git config --global core.editor "<editor_name>"
+
+	-> Default difftool
+
+5 - git config --global merge.tool "<diff_tool>"
+
+--------------------------------------------------------
+
+Semi Git Tutorial
+
+	-> Git config tool
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	Git comes with a tool called git config that lets you get and set configuration variables that control
+	all aspects of how Git looks and operates. These variables can be stored in three different places:
+
+	/etc/gitconfig file: Contains values for every user on the system and all their repositories. If you
+ 	pass the option--system to git config, it reads and writes from this file specifically.
+
+	~/.gitconfig file: Specific to your user. You can make Git read and write to this file specifically
+ 	by passing the --global option.
+
+	config file in the git directory (that is, .git/config) of whatever repository you’re currently using:
+ 	Specific to that single repository. Each level overrides values in the previous level, so values in 
+	.git/config trump those in /etc/gitconfig.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Getting help
+
+$ git help <verb>
+$ git <verb> --help
+$ man git-<verb>
+
+	-> Initializing git repo
+
+$ git init
+
+	-> Adding files to stage area. they are now tracked by GIT.
+		Actually, GIT will know about untracked files as well. (See "git status" command)
+		
+
+$ git add *.c
+$ git add README
+
+	-> Commiting them to (local) repository
+
+$ git commit -m 'initial project version'
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	Remember that each file in your working directory can be in one of two states: tracked or untracked. 
+	Tracked files are files that were in the last snapshot; they can be unmodified, modified, or staged.
+	Untracked files are everything else — any files in your working directory that were not in your last
+	snapshot and are not in your staging area. When you first clone a repository, all of your files will
+	be tracked and unmodified because you just checked them out and haven’t edited anything.
+
+	As you edit files, Git sees them as modified, because you’ve changed them since your last commit. 
+	You stage these modified files and then commit all your staged changes, and the cycle repeats. 
+	This lifecycle is illustrated in Figure 2-1.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Checking status of yout files
+
+$ git status
+
+	-> Staging files
+
+$ git add README
+
+	-> Ignoring files. Make a .gitignore file
+
+$ cat << EOF > .gitignore
+*.[oa]
+*~    
+EOF
+
+	-> See which files were changed but not staged.
+
+$ git diff
+
+	-> See what you've staged that will go into the next commit
+
+$ git diff --cached
+$ git diff --staged
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	It’s important to note that git diff by itself doesn’t show all changes made since your last 
+	commit — only changes that are still unstaged. This can be confusing, because if you’ve staged
+	all of your changes, git diff will give you no output.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> To commit your changes
+
+$ git commit
+$ git commit -m "<message>"
+
+	-> To commit skkiping the stage area.
+
+$ git commit -a -m "<message>"
+
+	-> To remove files from the stage area. This will actually remove the file from 
+		disk and from the stage area.
+
+$ git rm readme.txt
+
+	-> To remove the file fjust from the stage area (git will no track it anymore)
+
+$ git rm --cached readme.txt
+
+	-> To move files (or rename them)
+
+$git mv README.txt README
+
+	-> The above command is Analog to the following three:
+
+$ mv README.txt README
+$ git rm README.txt
+$ git add README
+
+	-> To view the commit history
+
+$ git log
+	
+	-> To view the commit history with the changes introduced in each (-p) and
+		limit the output to 2 (-2_:
+
+$ git log -p -2
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	The oneline and format options are particularly useful with another log option called
+ 	--graph. This option adds a nice little ASCII graph showing your branch and merge history,
+ 	which we can see our copy of the Grit project repository:
+
+$ git log --pretty=format:"%h %s" --graph
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Change your last commit. This command takes your staging area and uses it for the commit.
+
+$ git commit --amend
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	This command takes your staging area and uses it for the commit. If you’ve made no changes since
+ 	your last commit (for instance, you run this command immediately after your previous commit), then your
+ 	snapshot will look exactly the same and all you’ll change is your commit message.
+
+	The same commit-message editor fires up, but it already contains the message of your previous commit.
+ 	You can edit the message the same as always, but it overwrites your previous commit.
+	
+	As an example, if you commit and then realize you forgot to stage the changes in a file you wanted
+ 	to add to this commit, you can do something like this:
+
+	$ git commit -m 'initial commit'
+	$ git add forgotten_file
+	$ git commit --amend
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Unstaging a staged file
+
+$ git reset HEAD benchmarks.rb
+
+	-> Unmodifying a modified file. DANEGEROUS as git won't be able to recever it, as the
+	modification was never commited nor even staged
+
+$ git checkout -- benchmarks.rb
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	What if you realize that you don’t want to keep your changes to the benchmarks.rb file?
+ 	How can you easily unmodify it — revert it back to what it looked like when you last committed
+ 	(or initially cloned, or however you got it into your working directory)? Luckily, git status
+ 	tells you how to do that, too. In the last example output, the unstaged area looks like this:
+
+	# Changed but not updated:
+	#   (use "git add <file>..." to update what will be committed)
+	#   (use "git checkout -- <file>..." to discard changes in working directory)
+	#
+	#       modified:   benchmarks.rb
+	#
+
+	You can see that the changes have been reverted. You should also realize that this is a dangerous
+	command: any changes you made to that file are gone — you just copied another file over it. Don’t ever
+	use this command unless you absolutely know that you don’t want the file. If you just need to get
+	it out of the way, we’ll go over stashing and branching in the next chapter; these are generally 
+	better ways to go.
+
+	Remember, anything that is committed in Git can almost always be recovered. Even commits that
+	were on branches that were deleted or commits that were overwritten with an --amend commit can
+	be recovered (see Chapter 9 for data recovery). However, anything you lose that was never
+	committed is likely never to be seen again.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Showing your remotes
+
+$ git remote
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	To see which remote servers you have configured, you can run the git
+ 	remote command. It lists the shortnames of each remote handle you’ve specified.
+ 	If you’ve cloned your repository, you should at least see origin — that is the
+ 	default name Git gives to the server you cloned from:
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Adding remote repositories
+
+$ git remote add [shortname] [url]
+
+	-> Fetch tracked remote repository
+
+$ git fetch pb
+remote: Counting objects: 58, done.
+remote: Compressing objects: 100% (41/41), done.
+remote: Total 44 (delta 24), reused 1 (delta 0)
+Unpacking objects: 100% (44/44), done.
+From git://github.com/paulboone/ticgit
+ * [new branch]      master     -> pb/master
+ * [new branch]      ticgit     -> pb/ticgit
+
+	-> Pushing to remotes
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	When you have your project at a point that you want to share, you have to push it upstream.
+ 	The command for this is simple: git push [remote-name] [branch-name]. If you want to push your
+ 	master branch to your origin server (again, cloning generally sets up both of those names for
+ 	you automatically), then you can run this to push your work back up to the server:
+
+	$ git push origin master
+
+	This command works only if you cloned from a server to which you have write access and if 
+	nobody has pushed in the meantime. If you and someone else clone at the same time and they
+ 	push upstream and then you push upstream, your push will rightly be rejected. You’ll have
+ 	to pull down their work first and incorporate it into yours before you’ll be allowed 
+	to push. See Chapter 3 for more detailed information on how to push to remote servers.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Show info about remote server
+
+$ git remote show origin
+
+	-> Renaming remotes
+
+$ git remote rename pb paul
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	It’s worth mentioning that this changes your remote branch names, too.
+	What used to be referenced at pb/master is now at paul/master.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Removing remotes
+
+$ git remote rm paul
+
+	-> List tags
+
+$ git tag
+
+	-> Creating annotated tags. Use -s instead of -a for signed tags (needs private key)
+
+$ git tag -a v1.0 -m "First Release"
+
+	-> Creating lightweight tags.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	Another way to tag commits is with a lightweight tag. 
+	This is basically the commit checksum stored in a file — no other
+ 	information is kept. To create a lightweight tag, don’t supply the -a, -s, or -m option:
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+$ git tag v1.4-lw
+
+	-> Verifying tags. Needs signer's public key!
+
+$ git tag -v [tag-name]
+
+	-> Tagging later
+
+$ git tag -a [tag-name] [commit-checksum]
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	You can also tag commits after you’ve moved past them. Suppose your commit
+	 history looks like this:
+
+	$ git log --pretty=oneline
+	15027957951b64cf874c3557a0f3547bd83b3ff6 Merge branch 'experiment'
+	a6b4c97498bd301d84096da251c98a07c7723e65 beginning write support
+	0d52aaab4479697da7686c15f77a3d64d9165190 one more thing
+	6d52a271eda8725415634dd79daabbc4d9b6008e Merge branch 'experiment'
+	0b7434d86859cc7b8c3d5e1dddfed66ff742fcbc added a commit function
+	4682c3261057305bdd616e23b64b0857d832627b added a todo file
+	166ae0c4d3f420721acbb115cc33848dfcc2121a started write support
+	9fceb02d0ae598e95dc970b74767f19372d61af8 updated rakefile
+	964f16d36dfccde844893cac5b347e7b3d44abbc commit the todo
+	8a5cbc430f1a9c3d00faaeffd07798508422908a updated readme
+
+	Now, suppose you forgot to tag the project at v1.2, which was at the "updated rakefile"
+ 	commit. You can add it after the fact. To tag that commit, you specify the commit
+ 	checksum (or part of it) at the end of the command:
+
+$ git tag -a v1.2 9fceb02
+
+	-> Pushing tag names
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+$ git push origin [tagname]
+$ git push origin --tags
+
+	-> Branching
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	When you commit in Git, Git stores a commit object that contains a pointer
+	to the snapshot of the content you staged, the author and message metadata, and zero
+	or more pointers to the commit or commits that were the direct parents of this commit:
+	zero parents for the first commit, one parent for a normal commit, and multiple parents
+	for a commit that results from a merge of two or more branches.
+
+	To visualize this, let’s assume that you have a directory containing three
+ 	files, and you stage them all and commit. Staging the files checksums each one
+ 	(the SHA-1 hash we mentioned in Chapter 1), stores that version of the file in the
+ 	Git repository (Git refers to them as blobs), and adds that checksum to the staging area.
+
+	$ git add README test.rb LICENSE
+	$ git commit -m 'initial commit of my project
+
+	Your Git repository now contains five objects: one blob for the contents of each
+	of your three files, one tree that lists the contents of the directory and specifies which
+	file names are stored as which blobs, and one commit with the pointer to that root tree and
+	all the commit metadata. Conceptually, the data in your Git repository looks something like
+	Figure 3-1.
+
+	If you make some changes and commit again, the next commit stores a pointer to the commit
+	that came immediately before it. After two more commits, your history might look something
+	like Figure 3-2.
+
+	A branch in Git is simply a lightweight movable pointer to one of these commits.
+ 	The default branch name in Git is master. As you initially make commits, you’re given a
+ 	master branch that points to the last commit you made. Every time you commit, it moves
+ 	forward automatically.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Creating new branch
+
+$ git branch testing
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	How does Git know what branch you’re currently on? It keeps a special pointer called HEAD.
+ 	Note that this is a lot different than the concept of HEAD in other VCSs you may be used to,
+ 	such as Subversion or CVS. In Git, this is a pointer to the local branch you’re currently on.
+ 	In this case, you’re still on master. The git branch command only created a new branch —
+ 	it didn’t switch to that branch (see Figure 3-5).
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Changing to a specific branch. Moves the HEAD pointer to this.
+
+$ git checkout testing
+

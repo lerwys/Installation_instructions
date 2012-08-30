@@ -1,0 +1,53 @@
+--------------------------------------------------------
+Installation Instructions:
+
+	sudo apt-get  install  samba samba-common
+	sudo apt-get install python-glade2
+	sudo apt-get install system-config-samba
+
+resource: http://ubuntuforums.org/showthread.php?t=288534
+
+/root/.smbcredentials file:
+
+	username=winusername
+	password=winpassword
+
+/root/.smbcredentials permissions:
+
+	chmod 700 root/.smbcredentials
+
+/etc/fstab file:
+
+//centaurus/repositorio /home/lerwys/Windows_Network/Centaurus  cifs            credentials=/root/.smbcredentials,iocharset=utf8,file_mode=777,                 dir_mode=0777   0       0
+
+testparm dump:
+
+		[global]
+		workgroup = ABTLUS
+		server string = %h server (Samba, Ubuntu)
+		map to guest = Bad User
+		obey pam restrictions = Yes
+		pam password change = Yes
+		passwd program = /usr/bin/passwd %u
+		passwd chat = *Enter\snew\s*\spassword:* %n\n *Retype\snew\s*\spassword:* %n\n *password\supdated\ssuccessfully* .
+		unix password sync = Yes
+		syslog = 0
+		log file = /var/log/samba/log.%m
+		max log size = 1000
+		dns proxy = No
+		wins server = 10.0.18.5
+		usershare allow guests = Yes
+		panic action = /usr/share/samba/panic-action %d
+		idmap config * : backend = tdb
+
+	[printers]
+		comment = All Printers
+		path = /var/spool/samba
+		create mask = 0700
+		printable = Yes
+		print ok = Yes
+		browseable = No
+
+	[print$]
+		comment = Printer Drivers
+		path = /var/lib/samba/printers

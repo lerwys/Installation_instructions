@@ -1,0 +1,277 @@
+--------------------------------------------------------
+Installation Instructions:
+
+
+1 - Install cygwin
+2 - Install the following packages:
+	> openssh
+	> vim, vim-common
+	> git, git-completion, gitk, git-gui
+	
+3 - For CYGWIN/X install the following:
+	> xorg-server, xinit
+	> xorg-X11
+	> xorg-X11-xwin
+	> xorg-X11-xwin-gl if you want GLX
+	> xorg-docs
+	> X-start-menu-icons 
+	> X specific libraries: Xm (libXm2, libXm-devel?), Xmu (libXmu6, libXmu-devel?),
+		 Xt (libXt6, libXt-devel?), Xp (libXpm4, libXpm-devel?),
+		 Xtst (libXtst6, libXtst6-devel?), X11 (libX11_6, libX11-devel?)
+	> libpng, gilib, libgif4
+
+
+4 - Install Fonts
+	> font-adobe-*
+	> font-bistream-dpi-(75,100)
+	> fontsproto, fontstosfnt, lbXfont
+	> libfontconfig1
+
+5 - At the server (No need to do this step now)
+	> sudo vim /etc/ssh/sshd_config
+	enables X11Forwarding yes
+
+	-> To configure ssh on cygwin/X
+
+6 - ssh-host-config -y
+
+7 - At the client
+	sudo vim /etc/ssh/ssh_config
+	ForwardAgent yes
+	ForwardX11 yes
+	ForwardX11Trusted yes
+
+	-> Set environment variable DISPLAY
+	
+8 - vim ~/.bashrc
+	> DISPLAY=:0.0
+	> export DISPLAY
+
+	-> save and exit (:wq)
+
+8 - Issue the command on cygwin/X
+	> ssh -o "ExitOnForwardFailure yes" -Y -f libera_guest@10.0.18.35 'edm -m "HOSTNAME=LNLS1,RAFNAME=BPM" -x main.edl &'
+
+	-> Optionally, you can put it in a script
+
+9 - vim libera_interaface.sh
+
+	> #!/bin/sh
+	>
+	> ssh -o "ExitOnForwardFailure yes" -Y -f libera_guest@10.0.18.35 'edm -m "HOSTNAME=LNLS1,RAFNAME=BPM" -x main.edl &'
+
+	-> save and exit (:wq)
+
+	-> Change the permission to make it executable
+
+10 - chmod +x libera_interaface.sh
+
+	-> To start the application just type the following:
+
+11 - ./libera_interface.sh
+
+	-> And the interface should appear
+
+--------------------------------------------------------
+Tips:
+
+	-> Change the background and foreground color of cygwin/X
+
+1 - 
+	> vim ~/.Xdefaults
+
+	XTerm*background: black
+	XTerm*foreground: white
+
+	-> save and exit (:wq)
+
+2 - Improve the X desktop (change it) to WindowMaker
+
+	-> Install wmaker via cygwin
+	
+	-> create script to start the wmaker desktop directly
+	
+		> vim ~/.xinitrc
+		> #!/bin/sh
+		> exec wmaker
+
+	-> save and exit (:wq)
+
+	-> Edit .bashrc in order to alias the startx command to a more suitable one
+
+		> vim ~/.bashrc
+		> alias startx='startx -- -nowinkill -nodecoration'
+
+	-> save and exit (:wq)
+
+	-> From th man pages:
+
+		-nodecoration
+			Do not give the Cygwin/X window a Windows window border, title bar, etc. This parameter 			is ignored when the -fullscreen parameter is specified.
+	
+	
+
+	-> To start a multiwindow desktop
+	> startx -- -multiwindow
+
+
+--------------------------------------------------------
+Possible Errors:
+
+	-> X does not redirect to Cygwin:
+
+		Verify that the xhost program is not restricting X redirection!
+
+			>xhost
+			access control enabled, only authorized clients can connect
+			SI:localuser:lerwys
+
+		Do the following if you get something like the above:
+
+			> xhost +
+			access control disabled, clients can connect from any host
+
+		This will enable the server to allow remote hosts.
+		Optionally, you can allow just a single ip (host) with:
+
+			> xhost + <remote_host_ip>
+
+	-> Check the DISPLAY variable. If its defined in such files like /etc/profile,
+		~/.bashrc, ~/bash_profile, /etc/bash.bashrc, ...
+		try to unset them. This was the source of not redirecting X applications!
+
+		This was messing up the X server auto display management,
+		as the server automatically sets this variable when ssh'ed, but it was
+		overrided by the DISPLAY=:0.0 at the /etc/bash.bashrc server file
+		(as suggested by the EDM configuration files).
+		Only the client should set DISPLAY=:0.0, as the host part will be set 
+		by the server when ssh'ed. From the x.cygwin.com/docs page:
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	The DISPLAY environment variable instructs an X client which X server it is to connect to by default. Typically this can be overriden by running the client with a -display or -d command line option.
+
+	The :0.0 part of the DISPLAY variable denote the display and the screen of an X server.
+
+	The display is the first number and should equal the display number given to a running instance of an X server. By default the X server uses display number 0. If the X server is using TCP/IP for communication it listens on port 6000 + display-number for X client connections. For local (UNIX domain sockets) it uses the socket /tmp/.X11-unix/Xdisplay-number
+
+	The screen denotes different output devices of the X server. You could start XWin.exe with two -screen options and would end up with two X11 windows. Each of them is a different screen. Other X servers open different screens for different monitors connected to the computer.
+
+	Cygwin/X supports different formats of the DISPLAY variable
+
+	:0.0 or unix:0.0
+
+
+	This names a local X server and the communication uses the UNIX domain sockets.
+
+	hostname:0.0
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+This names a remote X server and the communication uses the TCP/IP network.
+
+	-> Check if there is the following line in sshd_config. Did not work
+		when the variable DISPLAY was the in the server configuration file
+		/etc/bash.bashrc. Good to set it anyway, just in case. What are the
+
+		# Workaround to X redirection
+		X11UseLocalHost no
+
+		From the man pages:
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	X11UseLocalhost
+             Specifies whether sshd(8) should bind the X11 forwarding server
+             to the loopback address or to the wildcard address.  By default,
+             sshd binds the forwarding server to the loopback address and sets
+             the hostname part of the DISPLAY environment variable to
+             “localhost”.  This prevents remote hosts from connecting to the
+             proxy display.  However, some older X11 clients may not function
+             with this configuration.  X11UseLocalhost may be set to “no” to
+             specify that the forwarding server should be bound to the wild‐
+             card address.  The argument must be “yes” or “no”.  The default
+             is “yes”.
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> If running a non-interactive shell (with ssh host command syntax), there can be
+		differences in the env variables, as different files gets sourced.
+		For example, if you env variables are set in /etc/bash.bashrc:
+
+			  6 # If not running interactively, don't do anything
+			  7 [ -z "$PS1" ] && return
+
+		Fom this line we see that if runnning non-interacvely (as in ssh <host> <command>)
+		the variables won't get sourced and, hence, won't be available for use.
+		From the man pages:
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+      A  login  shell  is  one whose first character of argument
+       zero is a -, or one started with the --login option.
+
+       An interactive shell is  one  started  without  non-option
+       arguments  and  without the -c option whose standard input
+       and error are both connected to terminals  (as  determined
+       by  isatty(3)), or one started with the -i option.  PS1 is
+       set and $- includes i if bash is interactive,  allowing  a
+       shell script or a startup file to test this state.
+
+       The  following  paragraphs  describe how bash executes its
+       startup files.  If any of the files exist  but  cannot  be
+       read,  bash reports an error.  Tildes are expanded in file
+       names as described below  under  Tilde  Expansion  in  the
+       EXPANSION section.
+
+       When  bash is invoked as an interactive login shell, or as
+       a non-interactive shell with the --login option, it  first
+       reads and executes commands from the file /etc/profile, if
+       that file exists.  After reading that file, it  looks  for
+       ~/.bash_profile,  ~/.bash_login,  and  ~/.profile, in that
+       order, and reads and executes commands from the first  one
+       that  exists  and is readable.  The --noprofile option may
+       be used when the shell is started to inhibit  this  behav­
+       ior.
+
+       When a login shell exits, bash reads and executes commands
+       from the file ~/.bash_logout, if it exists.
+
+       When an interactive shell that is not  a  login  shell  is
+       started,  bash reads and executes commands from ~/.bashrc,
+       if that file exists.  This may be inhibited by  using  the
+       --norc  option.   The --rcfile file option will force bash
+       to  read  and  execute  commands  from  file  instead   of
+       ~/.bashrc.
+
+       When  bash  is  started  non-interactively, to run a shell
+       script, for example, it looks for the variable BASH_ENV in
+       the  environment,  expands  its value if it appears there,
+       and uses the expanded value as the name of a file to  read
+       and  execute.   Bash  behaves  as if the following command
+       were executed:
+              if [ -n "$BASH_ENV" ]; then . "$BASH_ENV"; fi
+       but the value of the PATH variable is not used  to  search
+       for the file name.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> "Host not found" or "no possible route to <hostname>" error.
+		This could be a result of a change in the server ip.
+		Try to find the server ip by looking for the hostname LERWYS-PC2
+		on the network as follows (isn't there a better alternative?)
+
+		> nmap -A -v -T4 10.0.18.0/24 or
+			nmap -A -v -T4 <network_prefix>
+
+	-> Look for the NetBIOS name: LERWYS-PC2
+	-> Or for the ssh following RSA/DSA hostkeys fingerprint:
+
+	| ssh-hostkey: 1024 69:f5:ee:4b:92:dd:e1:c5:98:a0:0c:d8:53:60:68:02 (DSA)
+	|_2048 5a:c7:b3:bc:f3:41:ff:92:c6:ee:4a:0b:a2:8e:8d:42 (RSA)
+
+	-> It is possible to verify your ssh-hostkey fingerprint with the command:
+
+	ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key.pub or with other type of key (DSA, etc)
+
+	
+
+
+
+		
+

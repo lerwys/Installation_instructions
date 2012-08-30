@@ -1,0 +1,403 @@
+--------------------------------------------------------
+Requirements: readline make gcc
+
+0 - sudo apt-get install libreadline6 libreadline6-dev make libxt-dev libxmu-headers libmotif-dev libgif-dev libgif4 libpng12-0 libpng12-0-dev libxp-dev libxtst-dev libxmu-dev
+
+	-> If any error is encountered due to a missing file try to issue the following command: 
+
+0.1 - sudo apt-get install apt-file
+0.2 - apt-file search <NAME_OF_THE_MISSING_FILE>
+0.3 - sudo apt-get install <NAME_OF_THE_PACKAGE>
+
+--------------------------------------------------------
+Installation Instructions:
+
+ -> Download sources from EPICS website and Extensions (EDM)
+1 - wget http://www.aps.anl.gov/epics/download/base/baseR3.14.12.2.tar.gz
+2 - wget http://www.aps.anl.gov/epics/download/extensions/extensionsTop_20070703.tar.gz
+3 - wget http://ics-web.sns.ornl.gov/edm/info/getAttachment.php?attachId=437&name=edm-1-12-79.tgz&type=application/x-gzip&size=2786006&mon=Jul&theDay=18&year=2012
+
+	-> Create a sub-diretcrory for epics in /opt
+1 - cd /opt
+2 - sudo mkdir epics
+
+	-> Change Ownership and Group
+3 - sudo chown lerwys:lerwys epics
+
+	-> Extract base into /opt/epics
+4 - cd epics
+5 - tar xvzf <PATH_TO_EPICS_BASE_TGZ>/baseR3.14.12.2.tar.gz
+
+	-> Create simlink in order to sanitize naming
+6 - ln -s ./base-3.14.12.2 base
+
+	-> Check your host architecture
+7 - /opt/epics/base/startup/EpicsHostArch[.pl]
+
+	-> Set EPICS_HOST_ARCH variable with your host architecture
+8 - sudo vim /etc/profile	(in Ubuntu)
+	
+	-> for other Distributions the best file to place enviroment variables varies. Some common places are: ~/.profile, ~/,bash_profile, ~/bashrc for session-wide variables; /etc/profile, /etc/bash.bashrc for system-wide variables.
+
+9 - Append the following lines to the file
+> EPICS_HOST_ARCH="<HOST_ARCHITECTURE>"
+> export EPICS_HOST_ARCH
+
+	-> save and exit (:wq)
+
+	-> source the changes
+10 - . /etc/profile
+
+	-> Build EPICS base
+11 - cd /opt/epics/base
+12 - make clean uninstall
+13 - make
+
+	-> Set enviroment variables
+14 - sudo vim /etc/profile	(in Ubuntu)
+15 - Append the following lines yo the file
+	> EPICS_FOLDER=/opt/epics
+	> export EPICS_FOLDER
+	> EPICS_BASE=${EPICS_FOLDER}/base
+	> export EPICS_BASE
+	> EPICS_BASE=/opt/epics/base
+	> export EPICS_BASE
+	> EPICS_TOPDIR=${EPICS_BASE}
+	> export EPICS_TOPDIR
+	> EPICS_BIN=${EPICS_BASE}/bin/${EPICS_HOST_ARCH}
+	> PATH=${PATH}:${EPICS_BIN}
+
+	-> save and exit (:wq)
+
+	-> source the file to apply the changes
+16 - . /etc/profile	(in Ubuntu)
+
+	-> Check if the enviroment variables are set correctly
+17 - env | grep EPICS
+
+	-> Extract extensions into /opt/epics
+18 - cd /opt/epics
+19 - tar xvzf <PATH_TO_EPICS_EXTENSIONS_TGZ>/						extensionsTop_20070703.tar.gz
+
+	-> Set enviroment variable
+20 - sudo vim /etc/profile	(in Ubuntu)
+21 - Append the following lines to the file
+> EPICS_EXTENSIONS=/opt/epics/extensions
+> export EPICS_EXENSIONS
+> EPICS_CA_MAX_ARRAY_BYTES=5000000
+> export EPICS_CA_MAX_ARRAY_BYTES
+
+	-> save and exit (:wq)
+
+	-> source the file to apply the changes
+22 - . /etc/profile	(in Ubuntu)
+
+	-> Build the EPICS IOC example
+23 - mkdir -pv ~/EPICS_apps/ioc-example && cd ~/EPICS_apps/ioc-example
+24 - makeBaseApp.pl -t example ioc-example
+25 - makeBaseApp.pl -i -t example ioc-example
+26 - Hit enter when asked for the application name (apply the default)
+27 - make
+
+	-> Execute application
+28 - cd iocBoot/ioc-example
+29 - ../../bin/linux-x86_64/ioc-example st.cmd
+	
+	-> If everthing went correcly you should see the epics prompt (epics>). Type "dbl" to see all the records available
+30 - dbl
+31 - exit
+
+	-> Build the EPICS caClient example
+32 - mkdir -pv ~/EPICS_apps/caclient-example && cd ~/EPICS_apps/caclient-example
+33 - makeBaseApp.pl -t caClient caclient-example
+35 - make
+
+	-> Execute application
+36 - bin/linux-x86_64/caExample <pvname>
+
+	-> <pvname> is the name of the record as displayed by the ioc-example dbl command
+
+	-> Install EDM Extension
+37 - cd /opt/epics/extensions/src
+38 - tar xvzf <PATH_TO_EDM_EXTENSION>/edm-1-12-79.tgz
+39 - cd edm
+
+40 - vim ../../configure/RELEASE
+
+	-> I would like to comment out the enviroment variables EPICS_BASE ansd EPICS_EXTENSIONS, but the compilation fails
+	-> save and exit (:wq)
+	-> Make symlinks , as ed expects to find it in /usr/lib. Moreover,
+the linker takes the first library found in the library search path, whether it is dynamic or static, This can cause the infamous error "relocation R_X86_64_32 against `.rodata.str1.1' can not be used when making a shared object; recompile with -fPIC". 
+40.5 - cd /usr/lib
+41 - sudo ln -s ./x86_64-linux-gnu/libXp.a libXp.a		(probably not needed)
+42 - sudo ln -s ./x86_64-linux-gnu/libXt.a libXt.a		(probably not needed)
+43 - sudo ln -s ./x86_64-linux-gnu/libXtst.a libXtst.a		(probably not needed)
+44 - sudo ln -s ./x86_64-linux-gnu/libX11.a libX11.a		(probably not needed)
+45 - sudo ln -s ./x86_64-linux-gnu/libXmu.a libXmu.a		(probably not needed)
+46 - sudo ln -s ./x86_64-linux-gnu/libXt.so libXt.so
+47 - sudo ln -s ./x86_64-linux-gnu/libXp.so libXp.so
+48 - sudo ln -s ./x86_64-linux-gnu/libXtst.so libXtst.so
+49 - sudo ln -s ./x86_64-linux-gnu/libX11.so libX11.so
+50 - sudo ln -s ./x86_64-linux-gnu/libXmu.so libXmu.so
+
+	-> Alter the Makefile located in edmMain/Makefile. Thanks to Jason Abernathy for this tip!
+51 - cd EdmMain
+52 - vim Makefile
+
+	edm_LIBS_Linux += Xm Xmu Xt Xp Xtst X11
+    	USR_LDFLAGS_Linux += -Wl,--no-as-needed	<--- add this line
+    	edm_SYS_LIBS_Linux += pthread dl
+
+	-> save and exit (:wq)
+
+-----------------------
+OBS:
+
+By comparing the output from ldd with and without the makefile modification, it is posible
+to note the missing dynamic link to 
+
+libXtst.so.6 => /usr/lib/x86_64-linux-gnu/libXtst.so.6 (0x00007f174e552000)
+libca.so.3.14 => /opt/epics/base/lib/linux-x86_64/libca.so.3.14 (0x00007f174dfb8000)
+libCom.so.3.14 => /opt/epics/base/lib/linux-x86_64/libCom.so.3.14 (0x00007f174dd5f000)
+libreadline.so.6 => /lib/x86_64-linux-gnu/libreadline.so.6 (0x00007f174d6fb000)
+librt.so.1 => /lib/x86_64-linux-gnu/librt.so.1 (0x00007f174d4f2000)
+libtinfo.so.5 => /lib/x86_64-linux-gnu/libtinfo.so.5 (0x00007f174ba91000)
+
+-----------------------
+
+53 - cd ..
+
+54 - make clean && make
+
+	-> Create directories
+55 - mkdir -pv ${EPICS_EXTENSIONS}/ext_pref/edm
+56 - sudo mkdir -v /opt/epics/edmApps
+57 - sudo chown lerwys:lerwys -R /opt/epics/edmApps
+	
+	-> Make symlkinks to new directory just in case another application is still
+	using old paths
+
+58 - ln -s /opt/epics/edmApps/* ~/EDM/ or ln -s /opt/epics/edmApps/* <path_to_old_EDMDATAFILE_top_folder>/
+
+	-> Set EDM Enviroment Variables
+
+59 - sudo vim /etc/profile	(in Ubuntu)
+60 - Append the following lines yo the file
+> EDM_TOPDIR=${EPICS_EXTENSIONS}/src/edm
+> export EDM_TOPDIR
+> EDMPVOBJECTS=${EPICS_EXTENSIONS}/ext_pref/edm
+> export EDMPVOBJECTS
+> EDMOBJECTS=${EPICS_EXTENSIONS}/ext_pref/edm
+> export EDMOBJECTS
+> EDMHELPFILES=${EPICS_EXTENSIONS}/src/edm/helpFiles
+> export EDMHELPFILES
+> EDMFILES=${EPICS_EXTENSIONS}/ext_pref/edm
+> export EDMFILES
+> EDM=${EPICS_EXTENSIONS}/src/edm/edmMain/O.${EPICS_HOST_ARCH}/edm
+> export EDM
+> EDMLIBS=${EPICS_EXTENSIONS}/lib/${EPICS_HOST_ARCH}
+> export EDMLIBS
+
+	-> Optionally, you can add to your search PATH. By doing this,
+we can call edm instead of $EDM
+PATH=${PATH}:${EPICS_EXTENSIONS}/src/edm/edmMain/O.${EPICS_HOST_ARCH}
+
+> EDMDATAFILES=${EPICS_FOLDER}/edmApps/libera-gui/panels:${EPICS_FOLDER}/edmApps/libera-diamond/opi
+> export EDMDATAFILES
+
+	-> save and exit (:wq)
+
+	-> source the file to apply the changes
+61 - . /etc/profile	(in Ubuntu)
+
+	-> Create and populate component files. Check if this is a safe approach.
+
+62 - for pv in Epics Calc Log Loc;do $EDM -addpv ${EPICS_EXTENSIONS}/lib/${EPICS_HOST_ARCH}/lib$pv.so;done (preferred way)
+	or
+	find ${EPICS_EXTENSIONS}/lib/${EPICS_HOST_ARCH} -iregex ".*\.so" -exec edm -add '{}' \;	
+
+63 - for ff in lib*.so;do ${EDM} -add ${EPICS_EXTENSIONS}/lib/${EPICS_HOST_ARCH}/$ff; done (preferred way)
+	or
+	find ${EPICS_EXTENSIONS}/lib/${EPICS_HOST_ARCH} -iregex ".*\.so" -exec edm -addpv '{}' \;
+
+	-> Subtitute offending (if any) fonts to another one. Example of a working substitution
+
+64 - find . -regextype posix-extended -iregex ".*edl$" -exec sed -i.bak -e 's/helvetica-bold/helvetica-medium/g' '{}' \;
+65 - find . -regextype posix-extended -iregex ".*edl$" -exec sed -i -e 's/courier-medium/courier-bold/g' '{}' \;
+
+	-> The following is an optional step but fundamental if performing any kind of 
+	access through a non-login, non-interactive shell! As common with ssh X redirection
+	(ssh <host_ip> <command>)
+
+66 - sudo vim /etc/sshd_config
+	
+	-> Append the following line to the file. It will execute the script located in the argument of
+		ForceCommand.
+
+67 - ForceCommand /usr/local/bin/ssh_session
+
+	-> This makes ssh run that command regardless of
+	  what the user requested. It sets $SSH_ORIGINAL_COMMAND (as in ssh <host_ip> <command> <syntax>),
+	  though, so we can just use that to do what the user originally asked for, and seems
+	  to reliably work when used with eval. We can fall back to login if a
+	  command is not requested. This is what my /usr/local/bin/ssh_session
+	  script does:
+
+> #!/bin/bash
+> 
+> # Script based on the original post from
+> # http://lists.apple.com/archives/macos-x-server/2008/Jun/msg00251.html
+> 
+> export SSH_SESSION=1
+> # If no command specified on the ssh command, fallback to login
+> # (exec login) and preserve environment (-p) for user preauthenticated
+> # $USER (-f)
+> if [ -z "$SSH_ORIGINAL_COMMAND" ] ; then
+>     export SSH_LOGIN=1
+>     exec login -fp "$USER"
+> else
+> # If command specified on ssh command, exec source scripts and
+> # execute command
+>     export SSH_LOGIN=
+>     # Checks if file exists and is readable (-r)
+>     [ -r /etc/profile ] && source /etc/profile
+>     [ -r ~/.profile ] && source ~/.profile
+>     # eval = read and concatenate in a single command
+>     eval exec "$SSH_ORIGINAL_COMMAND"
+> fi
+
+	-> save and exit (:wq)
+
+	-> make script executable
+
+68 - sudo chmod +x /usr/local/bin/ssh_session
+
+	-> To run the EDM panels from Libera:
+
+69- edm -m "HOSTNAME=LNLS1,RAFNAME=BPM" -x main.edl
+
+--------------------------------------------------------
+
+
+--------------------------------------------------------
+Installation Issues:
+
+1 - Readline error. readline/realine.h missing.
+2 - apt-file search readline/readline.h showed the packages containing
+	the offending files
+3 - sudo apt-get install libreadline6-dev
+--------------------------------------------------------
+
+--------------------------------------------------------
+Extensions Installations Issues:
+
+1 - Install Extensions Configure Files R3.14!
+
+--------------------------------------------------------
+
+--------------------------------------------------------
+EDM Issues:
+
+1 - EDM crashes! fixed. makefile alteration
+2 - objdump -T $EDM showed a lot of undifined symbols! fixed. makefile alteration
+3 - EDM segmentation fault:
+
+	Program received signal SIGSEGV, Segmentation fault.
+	0x00007ffff4fb3045 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+	(gdb) where
+	#0  0x00007ffff4fb3045 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+	#1  0x00007ffff4fb5a45 in malloc () from /lib/x86_64-linux-gnu/libc.so.6
+	#2  0x00007ffff58b5ded in operator new(unsigned long) ()
+	   from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+	#3  0x00007ffff58b5f09 in operator new[](unsigned long) ()
+	   from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+	#4  0x00007ffff1e837cb in xyGraphClass::executeDeferred() ()
+	   from /opt/epics/extensions/src/edm/baselib/O.linux-x86_64/libEdmBase.so
+	#5  0x00007ffff7b1e47a in activeWindowClass::processObjects() ()
+	   from /opt/epics/extensions/lib/linux-x86_64/libcfcaa62e-8199-11d3-a77f-00104b8742df.so
+	#6  0x00007ffff7affbf8 in appContextClass::applicationLoop() ()
+	   from /opt/epics/extensions/lib/linux-x86_64/libcfcaa62e-8199-11d3-a77f-00104b8742df.so
+	#7  0x0000000000403336 in main ()
+
+	reply from EPICS tech-talk:
+
+	Make sure that you are not having a problem with fonts.
+	Sheng Peng recently had run-time core dumps due to some font issue.
+	Hopefully, Sheng will reply to this thread.
+
+Probably this has something to do with the duplicate fonts error!
+
+	Warning - duplicate font tag name: [helvetica-bold-r-72.0], from line: 8
+
+Tried to install fonts
+
+> sudo apt-get install ttf-mscorefonts-installer
+> sudo apt-get install msttcorefonts
+> sudo apt-get install xfonts-75dpi
+> sudo apt-get install xfonts-100dpi
+> sudo apt-get install xfonts-base
+> sudo apt-get install xfonts-100dpi
+
+	-> Update font cache
+fc-cache -fv
+
+	-> Subtitute offending font to another one. Example of a working substitution
+
+> find . -regextype posix-extended -iregex ".*edl$" -exec sed -i.bak -e 's/helvetica-bold/helvetica-medium/g' '{}' \;
+> find . -regextype posix-extended -iregex ".*edl$" -exec sed -i -e 's/courier-medium/courier-bold/g' '{}' \;
+
+4 - EDM segmentation fault: 
+
+	Program received signal SIGSEGV, Segmentation fault.
+	0x00007ffff4fb2157 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+	(gdb) where
+	#0  0x00007ffff4fb2157 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+	#1  0x00007ffff65f1073 in XFreeGC () from /usr/lib/x86_64-linux-gnu/libX11.so.6
+	#2  0x00007ffff6d37877 in XtReleaseGC ()
+	   from /usr/lib/x86_64-linux-gnu/libXt.so.6
+	#3  0x00007ffff72e05a1 in ?? () from /usr/lib/libXm.so.4
+	#4  0x00007ffff72ec7aa in ?? () from /usr/lib/libXm.so.4
+	#5  0x00007ffff6d4c376 in ?? () from /usr/lib/x86_64-linux-gnu/libXt.so.6
+	#6  0x00007ffff6d4cd87 in XtSetValues ()
+	   from /usr/lib/x86_64-linux-gnu/libXt.so.6
+	#7  0x00007ffff6d5fe55 in XtVaSetValues ()
+	   from /usr/lib/x86_64-linux-gnu/libXt.so.6
+	#8  0x00007ffff192b305 in edmTextentryClass::drawActive() [clone .part.32] ()
+	   from /opt/epics/extensions/lib/linux-x86_64/libPV.so
+	#9  0x00007ffff192b545 in edmTextentryClass::drawActive() ()
+	   from /opt/epics/extensions/lib/linux-x86_64/libPV.so
+	#10 0x00007ffff7b2d34d in activeGraphicClass::smartDrawAllActive() ()
+	   from /opt/epics/extensions/lib/linux-x86_64/libcfcaa62e-8199-11d3-a77f-00104b8742df.so
+	#11 0x00007ffff7b1e47a in activeWindowClass::processObjects() ()
+	   from /opt/epics/extensions/lib/linux-x86_64/libcfcaa62e-8199-11d3-a77f-00104b8742df.so
+	#12 0x00007ffff7affbf8 in appContextClass::applicationLoop() ()
+	   from /opt/epics/extensions/lib/linux-x86_64/libcfcaa62e-8199-11d3-a77f-00104b---Type <return> to continue, or q <return> to quit---
+	8742df.so
+	#13 0x0000000000403336 in main ()
+
+5 - Compilação com Debug symbols e sem otimização
+	USR_CPP_FLAGS = -g -O0
+
+6 - Localizado um symlink errado!
+	> ls -la /usr/lib/x86_64-linux-gnu/ | grep libnss_db.so
+	> lrwxrwxrwx   1 root root       36 Aug 21 07:48 libnss_db.so -> /lib/x86_64-linux-gnu/libnss_db.so.2
+
+	-> Destino inexistente
+
+7 - sudo apt-get install libnss-db
+8 - cd /usr/lib/x86_64-linux-gnu
+9 - sudo ln -sf /usr/lib/libnss_db.so libnss_db.so
+
+--------------------------------------------------------
+Tips:
+
+	-> To see all open files belonging to a specific process (e.g., edm), issue:
+
+1 - lsof -p `pidof edm`
+
+	-> Or find the PID of the process and navigate throught 
+
+2 - ls -la /proc/<pid>/fd
+
+	
+
