@@ -393,3 +393,95 @@ $ git branch testing
 
 $ git checkout testing
 
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	That command did two things. It moved the HEAD pointer back to point to the master
+ 	branch, and it reverted the files in your working directory back to the snapshot that
+ 	master points to. This also means the changes you make from this point forward will
+ 	diverge from an older version of the project. It essentially rewinds the work you’ve done
+ 	in your testing branch temporarily so you can go in a different direction.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Create branches
+
+$ git branch iss53
+
+	-> Change to another branch
+
+$ git checkout iss53
+
+	-> Create and change to another branch. Equivalently to "git branch iss53; git checkout iss53"
+
+$ git checkout -b iss53
+
+	-> Merge current branch (pointed by HEAD pointer) with another one
+
+$ git merge iss53
+
+	-> Deleted no longer needed branches
+
+$ git branch -d iss53
+
+
+	-> Branch management
+	-> Show last commit of branches
+$ git branch -v
+
+	-> Filter out merged branches with current one or the other way around
+$ git branch --merged
+$ git branch --no-merged
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	You can keep doing this for several levels of stability. Some larger projects
+ 	also have a proposed or pu (proposed updates) branch that has integrated branches that
+ 	may not be ready to go into the next or master branch. The idea is that your branches
+	are at various levels of stability; when they reach a more stable level,
+ 	they’re merged into the branch above them. Again, having multiple long-running
+ 	branches isn’t necessary, but it’s often helpful, especially when you’re dealing
+ 	with very large or complex projects.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Puhing branches to a remote server
+
+$ git push (remote) (branch)
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	This is a bit of a shortcut. Git automatically expands the serverfix
+ 	branchname out to refs/heads/serverfix:refs/heads/serverfix, which means,
+ 	“Take my serverfix local branch and push it to update the remote’s serverfix branch.”
+ 	We’ll go over the refs/heads/ part in detail in Chapter 9, but you can generally
+ 	leave it off. You can also do git push origin serverfix:serverfix, which does the
+ 	same thing — it says, “Take my serverfix and make it the remote’s serverfix.” You
+ 	can use this format to push a local branch into a remote branch that is named differently.
+ 	If you didn’t want it to be called serverfix on the remote, you could instead run
+ 	git push origin serverfix:awesomebranch to push your local serverfix branch to
+ 	the awesomebranch branch on the remote project.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Create branch called serverfix and start tracking remote branches.
+		With tracking, your local branch swill automatically push to
+		and pull from origin/<remote_branch>.
+
+$ git checkout -b serverfix origin/serverfix
+Branch serverfix set up to track remote branch refs/remotes/origin/serverfix.
+Switched to a new branch "serverfix"
+
+	-> Delete remote branch
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	$ git push origin :serverfix
+	To git@github.com:schacon/simplegit.git
+	 - [deleted]         serverfix
+	Boom. No more branch on your server. You may want to dog-ear this page,
+ 	because you’ll need that command, and you’ll likely forget the syntax. A way to
+ 	remember this command is by recalling the git push [remotename] [localbranch]:[remotebranch]
+ 	syntax that we went over a bit earlier. If you leave off the [localbranch] portion,
+ 	then you’re basically saying, “Take nothing on my side and make it be [remotebranch].”
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
