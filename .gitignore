@@ -1,4 +1,4 @@
 *.[oa]
 *~
-*.{png,gif,jpeg,jpg}
-
+*.orig
+*/*.orig

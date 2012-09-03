@@ -487,3 +487,63 @@ $ git push [remotename] :[branch]
 
 	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+	-> Rebasing
+
+$ git checkout experiment
+$ git rebase master
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	Often, you’ll do this to make sure your commits apply cleanly on a remote branch
+	— perhaps in a project to which you’re trying to contribute but that you don’t maintain.
+	In this case, you’d do your work in a branch and then rebase your work onto origin/master
+	when you were ready to submit your patches to the main project. That way, the maintainer
+	doesn’t have to do any integration work — just a fast-forward or a clean apply.
+
+	Note that the snapshot pointed to by the final commit you end up with, whether
+ 	it’s the last of the rebased commits for a rebase or the final merge commit after a
+ 	merge, is the same snapshot — it’s only the history that is different. Rebasing replays
+ 	changes from one line of work onto another in the order they were introduced, whereas
+ 	merging takes the endpoints and merges them together.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> More complex rebasing
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	Suppose you decide that you want to merge your client-side changes
+ 	into your mainline for a release, but you want to hold off on the server-side
+ 	changes until it’s tested further. You can take the changes on client that aren’t
+ 	on server (C8 and C9) and replay them on your master branch by using the --onto
+ 	option of git rebase:
+
+$ git rebase --onto master server client
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Word of advice
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	Do not rebase commits that you have pushed to a public repository.
+
+	If you follow that guideline, you’ll be fine. If you don’t, people will 
+	hate you, and you’ll be scorned by friends and family.
+
+	When you rebase stuff, you’re abandoning existing commits and creating
+ 	new ones that are similar but different. If you push commits somewhere and
+ 	others pull them down and base work on them, and then you rewrite those
+ 	commits with git rebase and push them up again, your collaborators will
+ 	have to re-merge their work and things will get messy when you try to pull their work back into yours.
+
+	...
+
+	If you treat rebasing as a way to clean up and work with commits before
+ 	you push them, and if you only rebase commits that have never been available
+ 	publicly, then you’ll be fine. If you rebase commits that have already been
+ 	pushed publicly, and people may have based work on those commits, then you may
+ 	be in for some frustrating trouble.
+
+	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
