@@ -1,0 +1,71 @@
+--------------------------------------------------------
+Xilinx Installation Instructions:
+
+1 - Install ISE Xilinx
+
+	-> Set environment variables
+
+2 - vim ~/.bashrc
+
+	XILINX=/opt/Xilinx/14.1/ISE_DS
+	export XILINX
+	XILINX_BIN=${XILINX}/ISE/bin/lin64/
+	export XILINX_BIN
+	PATH=${PATH}:XILINX_BIN
+
+	-> save and exit (:wq)
+
+	-> Install Xilinx Cable drivers
+
+3 -	sudo apt-get install git-core libusb-dev fxload
+4 -	mkdir usb_driver
+5 - cd usb_driver
+6 - git clone git://git.zerfleddert.de/usb-driver
+7 - cd usb-driver
+8 - make
+9 - cp libusb-driver.so /usr/local/lib/
+	
+	-> Add udev rules
+
+10 - echo 'ACTION=="add", BUS=="usb", SYSFS{idVendor}=="03fd", MODE="666"' > /etc/udev/rules.d/libusb-driver.rules
+
+	-> Make the installed library to be load before any others (Isn't there a better way?)
+
+11 - echo "export LD_PRELOAD=/usr/local/lib/libusb-driver.so" >> $XILINX/settings64.sh
+
+	or export the variable by "hand"
+
+11.1 - vim ~/.bashrc
+11.2 - export LD_PRELOAD=/usr/local/lib/libusb-driver.so
+
+	-> save and exit (:wq)
+
+--------------------------------------------------------
+HDL make Installation Instructions:
+
+
+	-> Put hdlmake in a directory listed in PATH, for example:
+
+1 - sudo ln -s <PATH_TO_HDLMAKE> /usr/bin/hdlmake
+
+	-> Generate the makefiles
+
+2 - hdlmake --ise-proj --make-ise
+
+	-> Build it! Synthetize. You may the time command in order to
+		verify how much time was spent during synthesis. Additionally,
+		we redirect the stdout and stderr to a file. Otherwise, it
+		wouldn't be possible to analyse the output log.
+
+3 - time make local > synth_output.txt 2>&1
+
+--------------------------------------------------------
+Cross Compiling for LM32:
+
+1 - sudo mkdir /opt/gcc-lm32
+2 - sudo tar xvf <path_to_lm32_gcc>.tar.xz
+
+	-> Run specific makefile or add the CROSS_COMPILE environment variable as follows:
+
+3 - CROSS_COMPILE="<path_to_lm32_gcc_toolchain>/bin/lm32-elf-"
+
