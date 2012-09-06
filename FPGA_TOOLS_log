@@ -27,7 +27,11 @@ Xilinx Installation Instructions:
 	
 	-> Add udev rules
 
-10 - echo 'ACTION=="add", BUS=="usb", SYSFS{idVendor}=="03fd", MODE="666"' > /etc/udev/rules.d/libusb-driver.rules
+10.5 sudo vim /etc/udev/rules.d/libusb-driver.rules
+
+	> ACTION=="add", BUS=="usb", SYSFS{idVendor}=="03fd", MODE="666"
+
+	-> save and exit (:wq)
 
 	-> Make the installed library to be load before any others (Isn't there a better way?)
 
@@ -39,6 +43,8 @@ Xilinx Installation Instructions:
 11.2 - export LD_PRELOAD=/usr/local/lib/libusb-driver.so
 
 	-> save and exit (:wq)
+
+=========THE STEPS BELOW DO NOT WORK!=========
 
 	-> In order to license ISE with a USB Dongle it is necessary to
 		install the FLEX ID usb drivers (based on http://www.bluevirus.ch/?blog_sel%5B0%5D=52):
@@ -171,11 +177,38 @@ Xilinx Installation Instructions:
 
 	-> save and exit (:wq)
 
-25 - sudo dpkg -b aksusbd-redhat-1.14
+	-> Intall FLEXId utilities from
+		http://www.globes.com/support/fnp_utilities_download.htm#downloads.
+
+	-> Copy the lmutil, lmadmin and lmgrd to /usr/local/sbin
+
+25 - tar xvf lmutil_x64_lsb.tar.gz
+26 - tar xvf lmgrd_x64_lsb.tar.gz
+
+27 - sudo cp lmutil lmgrd lmadmin-i86_lsb-11_11_0_0.bin /usr/local/sbin/
+
+	-> Make lmadmin executable
+
+28 - sudo chmod +x /usr/local/sbin/lmadmin-i86_lsb-11_11_0_0.bin
+
+	-> Symlink to lmadmin
+
+29 - sudo ln -s lmadmin-i86_lsb-11_11_0_0.bin /usr/local/sbin/lmadmin
+
+	-> Run lmadmin
+
+30 - /usr/local/sbin/lmadmin
+
+31 - sudo dpkg -b aksusbd-redhat-1.14
 
 	-> Install it!
 
-26 - sudo dpkg -i aksusbd-redhat-1.14.deb
+32 - sudo dpkg -i aksusbd-redhat-1.14.deb
+
+=========THE STEPS ABIVE DO NOT WORK!=========
+
+	-> There is a workaround for this issue.
+		See local file Xilinx_Install/Xilinx Issues
 
 --------------------------------------------------------
 HDL make Installation Instructions:
