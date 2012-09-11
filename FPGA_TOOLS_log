@@ -17,23 +17,16 @@ Xilinx Installation Instructions:
 
 	-> Install Xilinx Cable drivers
 
-3 -	sudo apt-get install git-core libusb-dev fxload
-4 -	mkdir usb_driver
-5 - cd usb_driver
-6 - git clone git://git.zerfleddert.de/usb-driver
+3 -	sudo apt-get install git-core gitk git-gui libusb-dev build-essential libc6-dev-i386 fxload
+
+4 - cd /opt/Xilinx sudo 
+5 - git clone git://git.zerfleddert.de/usb-driver
 7 - cd usb-driver
 8 - make
-9 - cp libusb-driver.so /usr/local/lib/
-	
-	-> Add udev rules
 
-10.5 sudo vim /etc/udev/rules.d/libusb-driver.rules
+9 - ./setup_pcusb /opt/Xilinx/13.4/ISE_DS/ISE/
 
-	> ACTION=="add", BUS=="usb", SYSFS{idVendor}=="03fd", MODE="666"
-
-	-> save and exit (:wq)
-
-	-> Make the installed library to be load before any others (Isn't there a better way?)
+	-> Optional! Make the installed library to be load before any others (Isn't there a better way?)
 
 11 - echo "export LD_PRELOAD=/usr/local/lib/libusb-driver.so" >> $XILINX/settings64.sh
 
