@@ -37,11 +37,15 @@ resource: http://ubuntuforums.org/showthread.php?t=288534
 		located in this repository. If it is not, edit it to 
 		reasssemble or just copy and paste the entire file.
 
+7 - sudo vim etc/samba/smb.cong
+
+	-> Edit it!
+	-> save and exit (:wq)
+
 	-> Edit the file /etc/nsswitch.conf to allow ubuntu to figure out
-		windows hostnames. Edit the line hosts:... to look like the
-		following.
+		windows hostnames. Edit the line hosts:... to add the following.
 		
-7 - sudo vim /etc/samba/smb.conf 
+7 - sudo vim /etc/nss switch
 
 		> hosts: files dns wins
 
