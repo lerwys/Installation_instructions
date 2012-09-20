@@ -550,3 +550,16 @@ $ git rebase --onto master server client
 
 	++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+--------------------------------------------------------
+Known Issues:
+
+	Git repositories rely on relative paths. So, if you change the top
+	repository folder from one place to another it will be ok. However,
+	if one is using git submodules be aware that its path it absolute!
+	In this way, if one changes the top repository folder it will appear
+	as broken. and messages such as "fatal: not a git repository" or
+	"fatal: <path> is not a valid git reposiroty" will pop up the screen.
+
+	To fix this, change the absolute name of the submodule  to refer to the 
+	new location. Ypu can do this by editing the file .git/modules/
+	<modules_name>/config.
