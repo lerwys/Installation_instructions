@@ -1,25 +1,59 @@
 --------------------------------------------------------
 Installation Instructions:
 
-	sudo apt-get  install  samba samba-common
-	sudo apt-get install python-glade2
-	sudo apt-get install system-config-samba
+1 -	sudo apt-get install samba samba-commom python-glade2 system-config-samba libsmbclient python-smbc smbclient smbfs samba4-common-bin samba-dsdb-modules samba-common-bin libsamba-credentials0 libsamba-hostconfig0 libsamba-policy0 libsamba-util0 winbind
 
 resource: http://ubuntuforums.org/showthread.php?t=288534
 
-/root/.smbcredentials file:
+	-> Create and edit the file /root/.smbcredentials file:
 
-	username=winusername
-	password=winpassword
+4 - sudo vim /root/.smbcredentials
 
-/root/.smbcredentials permissions:
+	-> Write your network username and password
 
-	chmod 700 root/.smbcredentials
+	> username=<winusername>
+	> password=<winpassword>
 
-/etc/fstab file:
+	-> sava and exit (:wq)
 
-//centaurus/repositorio /home/lerwys/Windows_Network/Centaurus  cifs            credentials=/root/.smbcredentials,iocharset=utf8,file_mode=777,                 dir_mode=0777   0       0
+	-> Change the /root/.smbcredentials permissions:
 
+5 -	sudo chmod 700 root/.smbcredentials
+
+	-> Create mount point
+
+6 - sudo mkdir /media/<mount_point_name>
+
+	-> Edit (append) to the /etc/fstab file:
+
+6 - sudo vim /etc/fstab:
+
+	> //centaurus/repositorio <mount_point> cifs credentials=/root/.smbcredentials,iocharset=utf8,file_mode=777,dir_mode=0777 0 0
+
+	-> save and exit (:wq)
+
+	-> Overview the samba config file located at /etc/samba/smb.conf. 
+		It should look like the file located at config_file/smb.conf
+		located in this repository. If it is not, edit it to 
+		reasssemble or just copy and paste the entire file.
+
+	-> Edit the file /etc/nsswitch.conf to allow ubuntu to figure out
+		windows hostnames. Edit the line hosts:... to look like the
+		following.
+		
+7 - sudo vim /etc/samba/smb.conf 
+
+		> hosts: files dns wins
+
+		-> save and exit (:wq)
+
+	-> Overview the config files.
+
+8 - testparm
+
+	-> It should look lie the follwing:
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++
 testparm dump:
 
 		[global]
@@ -51,3 +85,5 @@ testparm dump:
 	[print$]
 		comment = Printer Drivers
 		path = /var/lib/samba/printers
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++

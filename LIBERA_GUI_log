@@ -1,9 +1,15 @@
 --------------------------------------------------------
 Installation Instructions:
 
+	-> Install dependencies
+
 1 - sudo apt-get install cruft
 
-or sudo apt-get -f install (if a dependency problem messge pops out)
+	-> If a dependency message appears do the following
 
-	-> install de pakce in a directory differnt fromt he libera default  (/opt/libera/bin/...)
-2 - dpkg --instdir=${HOME}/EDM/libera-gui -i <PATH_TO_LIBERA_EPICS_GUI>/libera-epics-gui_2.2-52~r12582+4eBPM_i386.deb
+2 - sudo apt-get -f install 
+
+	-> install the package in a different directory from the libera 
+		default  (/opt/libera/bin/...)
+
+3 - dpkg --instdir=${HOME}/EDM/libera-gui -i <PATH_TO_LIBERA_EPICS_GUI>/libera-epics-gui_2.2-52~r12582+4eBPM_i386.deb
