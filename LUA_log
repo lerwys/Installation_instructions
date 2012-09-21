@@ -1,6 +1,6 @@
 --------------------------------------------------------
 Installation Instructions:
 
-    -> Install lua 5.2 packages
+    -> Install lua 5.1 packages. Lua 5.2 did not compile!
 
  1 - sudo apt-get install liblua5.2-0 liblua5.2-dev liblua5.2-0-dbg lua5.2 lua5.2-doc
