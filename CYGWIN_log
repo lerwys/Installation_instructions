@@ -1,0 +1,26 @@
+--------------------------------------------------------
+Installation Instructions:
+
+1 - Install cygwin
+2 - Install the following packages:
+	> openssh
+	> vim, vim-common
+	> git, git-completion, gitk, git-gui
+	> make, pyhton interpreter
+	
+3 - ssh-host-config -y
+
+4 - At the client
+	sudo vim /etc/ssh/ssh_config
+	ForwardAgent yes
+	ForwardX11 yes
+	ForwardX11Trusted yes
+
+	-> Set environment variable DISPLAY
+	
+4 - vim ~/.bashrc
+	> DISPLAY=:0.0
+	> export DISPLAY
+
+	-> save and exit (:wq)
+
