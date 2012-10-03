@@ -6,17 +6,23 @@ Installation Instructions:
 	> openssh
 	> vim, vim-common
 	> git, git-completion, gitk, git-gui
-	> make, pyhton interpreter
+	> make
+	> pyhton interpreter (python-2.7)
+
+	-> Configure ssh client-side options
 	
 3 - ssh-host-config -y
 
-4 - At the client
-	sudo vim /etc/ssh/ssh_config
-	ForwardAgent yes
-	ForwardX11 yes
-	ForwardX11Trusted yes
+	-> At the client enable X redirection
 
-	-> Set environment variable DISPLAY
+4 - sudo vim /etc/ssh/ssh_config
+	> ForwardAgent yes
+	> ForwardX11 yes
+	> ForwardX11Trusted yes
+
+	-> save and exit (:wq)
+
+	-> Set the DISPLAY environment variable
 	
 4 - vim ~/.bashrc
 	> DISPLAY=:0.0
