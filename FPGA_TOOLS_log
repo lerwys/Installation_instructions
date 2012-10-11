@@ -198,10 +198,43 @@ Xilinx Installation Instructions:
 
 32 - sudo dpkg -i aksusbd-redhat-1.14.deb
 
-=========THE STEPS ABIVE DO NOT WORK!=========
+=========THE STEPS ABOVE DO NOT WORK!=========
 
 	-> There is a workaround for this issue.
 		See local file Xilinx_Install/Xilinx Issues
+
+--------------------------------------------------------
+Installing Ubunutu Terminal Instructions:
+Source: http://strdoc.com/comment/417
+
+	-> Install minicom
+
+1 - sudo apt-get install minicom
+
+	-> Find the name your serial port
+
+2 - dmesg | grep tty
+
+	-> in the output look for something like "tty".
+		My output was something like this:
+
+		[    0.000000] console [tty0] enabled
+		[    3.815470] serial8250: ttyS0 at I/O 0x3f8 (irq = 4) is a 16550A
+		[    3.948477] 00:07: ttyS0 at I/O 0x3f8 (irq = 4) is a 16550A
+		[    4.004167] 0000:00:03.3: ttyS4 at I/O 0xecb8 (irq = 17) is a 16550A
+
+	-> This means the device correspond to my serial port is ttyS0.
+	-> Configure minicom
+
+3 - sudo minicom -s
+
+	-> Use the keyboard keys to select the menu item Serial port setup.
+	-> Enter A to change the Serial Device to /dev/ttyS0, 
+		and then enter E to change the line speed to 9600 8N1
+	-> Using arrow keys, select Save setup as dfl
+	-> Select Exit from Minicom.
+	-> Next time, from the terminal, you only need to run 
+		"sudo minicom" in order to start the terminal application.
 
 --------------------------------------------------------
 HDL make Installation Instructions:
