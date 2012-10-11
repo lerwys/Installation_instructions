@@ -215,21 +215,23 @@ Source: http://strdoc.com/comment/417
 
 2 - dmesg | grep tty
 
-	-> in the output look for something like "tty".
+	-> in the output look for something like "ttyUSB0".
 		My output was something like this:
 
-		[    0.000000] console [tty0] enabled
-		[    3.815470] serial8250: ttyS0 at I/O 0x3f8 (irq = 4) is a 16550A
-		[    3.948477] 00:07: ttyS0 at I/O 0x3f8 (irq = 4) is a 16550A
-		[    4.004167] 0000:00:03.3: ttyS4 at I/O 0xecb8 (irq = 17) is a 16550A
-
+[    0.000000] console [tty0] enabled
+[    3.815470] serial8250: ttyS0 at I/O 0x3f8 (irq = 4) is a 16550A
+[    3.948477] 00:07: ttyS0 at I/O 0x3f8 (irq = 4) is a 16550A
+[    4.004167] 0000:00:03.3: ttyS4 at I/O 0xecb8 (irq = 17) is a 16550A
+[195933.979161] usb 4-1: cp210x converter now attached to ttyUSB0
+[196991.760206] cp210x ttyUSB0: cp210x converter now disconnected from ttyUSB0
+[199153.839153] usb 4-1: cp210x converter now attached to ttyUSB0
 	-> This means the device correspond to my serial port is ttyS0.
 	-> Configure minicom
 
 3 - sudo minicom -s
 
 	-> Use the keyboard keys to select the menu item Serial port setup.
-	-> Enter A to change the Serial Device to /dev/ttyS0, 
+	-> Enter A to change the Serial Device to /dev/ttyUSB0, 
 		and then enter E to change the line speed to 9600 8N1
 	-> Using arrow keys, select Save setup as dfl
 	-> Select Exit from Minicom.
