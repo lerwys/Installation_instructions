@@ -225,7 +225,7 @@ Source: http://strdoc.com/comment/417
 [195933.979161] usb 4-1: cp210x converter now attached to ttyUSB0
 [196991.760206] cp210x ttyUSB0: cp210x converter now disconnected from ttyUSB0
 [199153.839153] usb 4-1: cp210x converter now attached to ttyUSB0
-	-> This means the device correspond to my serial port is ttyS0.
+	-> This means the device correspond to my serial port is ttyUSB0.
 	-> Configure minicom
 
 3 - sudo minicom -s
@@ -237,6 +237,38 @@ Source: http://strdoc.com/comment/417
 	-> Select Exit from Minicom.
 	-> Next time, from the terminal, you only need to run 
 		"sudo minicom" in order to start the terminal application.
+
+--------------------------------------------------------
+Linux Chipscope Installation Instructions:
+
+	Source:
+	http://xlnx.lithium.com/t5/Installation-and-Licensing/
+	ISE-12-1-Linux-Installs/td-p/69399
+
+	-> On Ubuntu (specifically), calling the chipscope (analyzer)
+	by the command line issues an error:
+
+	"
+	...
+	/opt/Xilinx/13.4/ISE_DS/ISE/bin/lin64/unwrapped/analyzer: 74:
+	/opt/Xilinx/13.4/ISE_DS/ISE/bin/lin64/unwrapped/cs_common.sh:
+	XIL_DIRS[1]=/opt/Xilinx/13.4/ISE_DS/ISE/: not found
+	...
+	"
+
+	-> Along with others of the same kind.
+
+	-> The problem resides on the interpreter called within the script
+	(#!/bin/sh). As on Ubunutu sh points to dash and not to bash, 
+	inconsistencies will appear. To fix the issue you have to 
+	reconfigure ubunutu to use bash	instead of dash (just changing
+	the shebang to #!/bin/bash did not work for me).
+
+	-> Issue the following command:
+
+	1 -sudo dpkg-reconfigure sh
+
+	-> Selects no when prompted. This should solve the issue
 
 --------------------------------------------------------
 HDL make Installation Instructions:
