@@ -1,7 +1,7 @@
 --------------------------------------------------------
 Installation Instructions:
 
-1 -	sudo apt-get install samba samba-commom python-glade2 system-config-samba libsmbclient python-smbc smbclient smbfs samba4-common-bin samba-dsdb-modules samba-common-bin libsamba-credentials0 libsamba-hostconfig0 libsamba-policy0 libsamba-util0 winbind
+1 -	sudo apt-get install samba samba-commom python-glade2 system-config-samba libsmbclient python-smbc smbclient smbfs samba4-common-bin samba-dsdb-modules samba-common-bin libsamba-credentials0 libsamba-hostconfig0 libsamba-policy0 libsamba-util0 winbind cifs-utils
 
 resource: http://ubuntuforums.org/showthread.php?t=288534
 
