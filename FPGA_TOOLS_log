@@ -7,11 +7,15 @@ Xilinx Installation Instructions:
 
 2 - vim ~/.bashrc
 
-	XILINX=/opt/Xilinx/14.1/ISE_DS
+	LM32_TOOLS=/opt/gcc-lm32/bin
+	XILINX=/opt/Xilinx/13.4/ISE_DS
 	export XILINX
-	XILINX_BIN=${XILINX}/ISE/bin/lin64/
+	HOST_PLATFORM=lin64
+	export HOST_PLATFORM
+	XILINX_BIN=${XILINX}/ISE/bin/${HOST_PLATFORM}
 	export XILINX_BIN
-	PATH=${PATH}:XILINX_BIN
+	PATH=${PATH}:${XILINX_BIN}:${LM32_TOOLS}
+	#export LD_PRELOAD="/usr/local/lib/libusb-driver.so"
 
 	-> save and exit (:wq)
 
