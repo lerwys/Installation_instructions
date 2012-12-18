@@ -296,10 +296,14 @@ HDL make Installation Instructions:
 --------------------------------------------------------
 Cross Compiling for LM32:
 
-1 - sudo mkdir /opt/gcc-lm32
-2 - sudo tar xvf <path_to_lm32_gcc>.tar.xz
+1 - Install missing libraries
+
+	-> sudo apt-get install apt-get install lib32z1
+
+2 - sudo mkdir /opt/gcc-lm32
+3 - sudo tar xvf <path_to_lm32_gcc>.tar.xz
 
 	-> Run specific makefile or add the CROSS_COMPILE environment variable as follows:
 
-3 - CROSS_COMPILE="<path_to_lm32_gcc_toolchain>/bin/lm32-elf-"
+4 - CROSS_COMPILE="<path_to_lm32_gcc_toolchain>/bin/lm32-elf-"
 
