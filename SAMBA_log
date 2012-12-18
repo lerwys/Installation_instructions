@@ -14,7 +14,7 @@ resource: http://ubuntuforums.org/showthread.php?t=288534
 	> username=<winusername>
 	> password=<winpassword>
 
-	-> sava and exit (:wq)
+	-> save and exit (:wq)
 
 	-> Change the /root/.smbcredentials permissions:
 
@@ -24,11 +24,17 @@ resource: http://ubuntuforums.org/showthread.php?t=288534
 
 6 - sudo mkdir /media/<mount_point_name>
 
+	-> Change its permissions and ownership
+
+7 - sudo chown <user>:<user> /media/<mount_point_name>
+
+8 - sudo chmod 755 /media/<mount_point_name>
+
 	-> Edit (append) to the /etc/fstab file:
 
-6 - sudo vim /etc/fstab:
+9 - sudo vim /etc/fstab:
 
-	> //centaurus/repositorio <mount_point> cifs credentials=/root/.smbcredentials,iocharset=utf8,file_mode=777,dir_mode=0777 0 0
+	> //centaurus/repositorio <mount_point_name> cifs credentials=/root/.smbcredentials,iocharset=utf8,file_mode=0777,dir_mode=0777 0 0
 
 	-> save and exit (:wq)
 
@@ -37,19 +43,20 @@ resource: http://ubuntuforums.org/showthread.php?t=288534
 		located in this repository. If it is not, edit it to 
 		reasssemble or just copy and paste the entire file.
 
-7 - sudo vim etc/samba/smb.cong
+7 - sudo vim etc/samba/smb.conf
 
 	-> Edit it!
 	-> save and exit (:wq)
 
 	-> Edit the file /etc/nsswitch.conf to allow ubuntu to figure out
-		windows hostnames. Edit the line hosts:... to add the following.
+		windows hostnames. Edit the line beggining with 
+		"hosts ..." and add the following:
 		
-7 - sudo vim /etc/nss switch
+7 - sudo vim /etc/nsswitch.conf
 
 		> hosts: files dns wins
 
-		-> save and exit (:wq)
+	-> save and exit (:wq)
 
 	-> Overview the config files.
 
