@@ -1,0 +1,13 @@
+--------------------------------------------------------
+Instalation instructions:
+
+    -> Install exchange MAPI protocol support for Evolution
+
+1 - sudo apt-get install evolution-mapi
+
+    -> Configure account settings
+
+    > Server type: Exchange MAPI
+    > Server: oberon.abtlus.org.br
+    > User Name: <user_name>
+    > Domain Name: <domain_name>
