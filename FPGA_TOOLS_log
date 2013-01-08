@@ -41,6 +41,10 @@ Xilinx Installation Instructions:
 
 	-> save and exit (:wq)
 
+12 - Don't forget to source the settings32.sh (32-bit systems) or settings64.sh(64-bit systems) file
+
+	-> . /opt/opt/Xilinx/13.4/ISE_DS/settings64.sh
+
 =========THE STEPS BELOW DO NOT WORK!=========
 
 	-> In order to license ISE with a USB Dongle it is necessary to
