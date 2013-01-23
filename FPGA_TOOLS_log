@@ -23,12 +23,18 @@ Xilinx Installation Instructions:
 
 3 -	sudo apt-get install git-core gitk git-gui libusb-dev build-essential libc6-dev-i386 fxload
 
-4 - cd /opt/Xilinx sudo 
+	-> Go to a folder at your preference. You must have write
+		permissions!
+
+4 - cd ~
+
+	-> Clone the repository
+
 5 - git clone git://git.zerfleddert.de/usb-driver
 7 - cd usb-driver
 8 - make
 
-9 - ./setup_pcusb /opt/Xilinx/13.4/ISE_DS/ISE/
+9 - sudo ./setup_pcusb /opt/Xilinx/13.4/ISE_DS/ISE/
 
 	-> Optional! Make the installed library to be load before any others (Isn't there a better way?)
 
@@ -41,9 +47,13 @@ Xilinx Installation Instructions:
 
 	-> save and exit (:wq)
 
-12 - Don't forget to source the settings32.sh (32-bit systems) or settings64.sh(64-bit systems) file
+12 - Don't forget to source the settings32.sh (32-bit systems),
+		settings64.sh (64-bit systems) or the ~/.bashrc file
+		depending on where you put the environment variable.
 
-	-> . /opt/opt/Xilinx/13.4/ISE_DS/settings64.sh
+	-> . /opt/Xilinx/13.4/ISE_DS/settings64.sh or
+	-> . /opt/Xilinx/13.4/ISE_DS/settings32.sh or
+	-> . ~/.bashrc
 
 =========THE STEPS BELOW DO NOT WORK!=========
 
