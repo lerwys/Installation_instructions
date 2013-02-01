@@ -284,7 +284,7 @@ Linux Chipscope Installation Instructions:
 
 	-> Issue the following command:
 
-	1 -sudo dpkg-reconfigure sh
+	1 -sudo dpkg-reconfigure dash
 
 	-> Selects no when prompted. This should solve the issue
 
