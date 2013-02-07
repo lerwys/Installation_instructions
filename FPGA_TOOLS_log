@@ -310,10 +310,9 @@ HDL make Installation Instructions:
 --------------------------------------------------------
 Cross Compiling for LM32:
 
-1 - Install missing libraries
+	-> Install missing libraries
 
-	-> sudo apt-get install apt-get install lib32z1
-
+1 - sudo apt-get install apt-get install lib32z1
 2 - sudo mkdir /opt/gcc-lm32
 3 - sudo tar xvf <path_to_lm32_gcc>.tar.xz
 
@@ -321,3 +320,43 @@ Cross Compiling for LM32:
 
 4 - CROSS_COMPILE="<path_to_lm32_gcc_toolchain>/bin/lm32-elf-"
 
+--------------------------------------------------------
+UrJTAG for debug:
+
+	-> Install missing libraries (libusb should be installed as well.
+		See "Xilinx Installation Instructions for more)
+
+1 - sudo apt-get install libftdi-dev
+
+	-> Download d2xx drivers (the libftdi-dev did not include
+		header files for me)
+
+2 - wget http://www.ftdichip.com/Drivers/D2XX/Linux/libftd2xx1.1.12.tar.gz (for 64-bit linux)
+
+3 - tar xvzf libftd2xx1.1.12.tar.gz 
+4 - mv release libftd2xx1.1.12
+5 - cd libftd2xx1.1.12
+
+
+	-> Copy the header files to specified location
+
+6 - sudo cp ftd2xx.h /usr/local/include/
+7 - sudo cp WinTypes.h /usr/local/include/
+
+	-> Change its perimission
+
+8 - sudo chmod a+r /usr/local/include/ftd2xx.h /usr/local/include/WinTypes.h
+
+	-> Download UrJTAG
+
+9 - wget http://sourceforge.net/projects/urjtag/files/
+
+	-> Install it
+
+10 - tar xzvf urjtag-x.y.tar.gz
+11 - cd urjtag-x.y
+12 - ./configure
+13 - make && make install
+
+	-> If anything goes wrong, check the documetation in 
+		http://urjtag.org/book/_compilation_and_installation.html
