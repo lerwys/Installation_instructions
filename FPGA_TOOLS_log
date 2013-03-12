@@ -360,3 +360,29 @@ UrJTAG for debug:
 
 	-> If anything goes wrong, check the documetation in 
 		http://urjtag.org/book/_compilation_and_installation.html
+
+--------------------------------------------------------
+Known issues: from http://wienker.org/blog/?p=188 (old)
+
+Error: Error: /bin/bash: gmake: command not found
+Solution: sudo ln -s /usr/bin/make /usr/bin/gmake
+
+Error: error while loading shared libraries: libXm.so.3
+Error2: error while loading shared libraries: libXm.so.4
+Solution: sudo apt-get install motif-client
+Solution2: sudo apt-get install libmotif4
+
+Error: error while loading shared libraries: libstdc++.so.5
+Solution: sudo apt-get install libstdc++5
+
+Error: Wind/U X-toolkit Error: wuDisplay: Can't open display
+Solution: export DISPLAY=:0
+
+Error: Wind/U Error (248): Failed to connect to the registry on server
+thinkpad Cannot register service: RPC: Unable to receive; 
+errno = Connection refused
+Solution: sudo apt-get install portmap
+
+Error: Warning!!: XKEYSYMDB environment variable is set to a wrong location
+Solution: export XKEYSYMDB=/usr/share/X11/XKeysymDB
+
