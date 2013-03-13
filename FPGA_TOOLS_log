@@ -15,7 +15,14 @@ Xilinx Installation Instructions:
 	XILINX_BIN=${XILINX}/ISE/bin/${HOST_PLATFORM}
 	export XILINX_BIN
 	PATH=${PATH}:${XILINX_BIN}:${LM32_TOOLS}
+	#XILINX_EDK=${XILINX}/ISE/EDK
+	#export XILINX_EDK
+	XILINX_CSE_TCL=${XILINX}/ISE/cse/tcl
+	#XILINX_CSE_TCL=/usr/lib/tclx8.4/
+	export XILINX_CSE_TCL
 	#export LD_PRELOAD="/usr/local/lib/libusb-driver.so"
+	export XKEYSYMDB=/usr/share/X11/XKeysymDB
+	export DISPLAY=:0
 
 	-> save and exit (:wq)
 
