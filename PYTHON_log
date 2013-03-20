@@ -1,0 +1,52 @@
+--------------------------------------------------------
+Installation Instructions:
+
+	-> Install python development packages
+
+1 - sudo apt-get install python-dev
+
+	-> Install pyhton PIP
+
+2 - sudo apt-get install python-pip
+
+	-> Install packages needed for libre-fdatool
+	(http://www.ohwr.org/projects/libre-fdatool)
+
+3 - sudo pip install numpy
+
+	-> Prior to isntalling scipy, we need to be sure that BLAS,
+	ATLAS and LAPCK are corrected installed. 
+
+4 - sudo apt-get install libblas-dev liblapck-dev libatlas-base-dev
+
+	-> Now we should be able to install the remaining python packages
+
+5 - sudo pip install scipy
+
+7 - sudo pip install matplotlib
+
+	-> If the ft2build.h could not be found install the following:
+	
+8 - sudo apt-get install libfreetype6-dev
+
+	-> If the png.h could not be found install the following:
+
+9 - sudo apt-get install libpng12-dev:w
+
+	-> Install myhdl package
+
+-> wget http://downloads.sourceforge.net/project/myhdl/myhdl/0.7/myhdl-0.7.tar.gz?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fmyhdl%2Ffiles%2F&ts=1363808420&use_mirror=ufpr
+
+10 - tar xvf myhdl-0.7.tar.gz
+11 - cd myhdl-0.7
+12 - python setup.py install
+
+	-> Test if all went correctly
+
+13 - cd myhdl/test/core
+14 - python test_all.py
+
+	-> To install co-simulation support
+
+15 - Go to the directory co-simulation/<platform> for your target 
+	platform and following the instructions in the README.txt file.
