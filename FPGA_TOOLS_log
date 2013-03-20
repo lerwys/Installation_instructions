@@ -369,6 +369,17 @@ UrJTAG for debug:
 		http://urjtag.org/book/_compilation_and_installation.html
 
 --------------------------------------------------------
+	General Tools Installation
+
+	-> Icarus Verilog Simulator
+
+	1 - sudo apt-get install iverilog
+
+	-> Install GTKwave
+
+	2 - sudo apt-get install gtkwave
+
+--------------------------------------------------------
 Known issues: from http://wienker.org/blog/?p=188 (old)
 
 Error: Error: /bin/bash: gmake: command not found
