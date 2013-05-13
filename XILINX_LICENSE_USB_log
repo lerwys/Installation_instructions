@@ -1,0 +1,166 @@
+========================THE STEPS BELOW DO NOT WORK!=========================
+
+	-> In order to license ISE with a USB Dongle it is necessary to
+		install the FLEX ID usb drivers (based on http://www.bluevirus.ch/?blog_sel%5B0%5D=52):
+
+	-> Installing Alien (Conveert to .rpm to .deb packages)
+
+12 - sudo apt-get install alien
+
+	-> This rpm package used chkconfig in order to control system services
+
+13 - sudo apt-get install chkconfig
+
+	-> Unpack rpm package
+
+14 - sudo alien -g -c aksusbd-redhat-1.14-3.i386.rpm
+15 - cd aksusbd-redhat-1.14
+
+	-> Rename the debian folder as we are going to build the debian
+		package with dpkg -b not running the rules script!
+
+16 - sudo mv debian/ DEBIAN/
+
+	-> Modify the DEBIAN/control file to adhere to the specified format
+
+17 - sudo vim DEBIAN/control
+	> Remove the empty line after Maintainer:
+	> change i386 to amd64 after Architecture
+	> Delete remaining content of the line that starts with Depends
+	> Add a line with a version number like Version: 8.6.0
+	> Make sure that there is an empty line at the end of the document
+
+	-> Move the aksusbd init script from etc/rc.d/init.d/ to etc/init.d/
+
+18 - sudo mv etc/{rc.d/init.d,}
+
+	-> Change write permissions temporarily
+
+19 - sudo chmod +w etc/init.d/aksusbd
+
+	-> Source the correct function library. In Ubuntu it is located at
+		/lib/lsb/init-functions.
+
+20 - vim etc/init.d/aksusbd
+
+	-> Change the following line:
+
+  9 . /etc/rc.d/init.d/functions
+
+	to
+
+  9 . /lib/lsb/init-functions
+
+	-> save and exit (:wq)
+
+	-> Restore permissions
+
+21 - sudo chmod -w etc/init.d/aksusbd
+
+
+	-> Modify the preinst script that blocks the installation.
+		just comment out the section:
+
+22 - sudo vim DEBIAN/preinst
+
+	> if [ ! -e /etc/redhat-release ] ; then
+	>    echo "ERROR This package can only be installed in Redhat Linux ! "
+	>    false
+	> else
+
+	...
+
+	> fi
+
+	-> It will look like this:
+
+	> #if [ ! -e /etc/redhat-release ] ; then
+  	> #   echo "ERROR This package can only be installed in Redhat Linux ! "
+  	> #   false
+  	> #else
+
+	...
+
+	> # fi
+
+	-> change the path to the aksusbd init script in all debian scripts.
+
+23 - 
+	for file in DEBIAN/{preinst,postinst,prerm}; do
+		sudo sed -i -e 's|/etc/rc.d/init.d/|/etc/init.d/|g' $file
+	done
+
+	-> Remove invalid characters in aksusb script
+
+24 - sudo sed -i.bak -e 's|$\"\(.*\)\"|\"\1\"|g' etc/init.d/aksusbd
+25 - sudo sed -i.bak -e 's|$(\(.*\))|\`\1\`|g' etc/init.d/aksusbd
+
+	-> Trying to use the lsb_functions
+
+	-> cd /op	hange daemon to start_daemon, failure to log_failure_msg and success to log_success_msg
+
+	-> Make the scripts (postinst preinst prerm) executables
+
+24 - sudo chmod +x DEBIAN/{postinst,preinst,prerm}
+
+	-> Build the package
+
+	-> Symlink insserv binary as aksusbd is looking at the wrong place.
+		is there a better way to fix this?
+
+25 - sudo ln -s /usr/lib/insserv/insserv /sbin/insserv
+
+	-> Create lock directories if nonexistent
+
+26 -  sudo vim etc/init.d/aksusbd
+
+	-> Add the following:
+
+	# Create var/lock/subsys directory
+	if [ ! -d /var/lock/subsys ]; then
+		mkdir /var/lock/subsys
+	fi
+
+	-> just before the following:
+
+	# See how we were called.
+	case "$1" in
+		start)
+
+		...
+
+	-> save and exit (:wq)
+
+	-> Intall FLEXId utilities from
+		http://www.globes.com/support/fnp_utilities_download.htm#downloads.
+
+	-> Copy the lmutil, lmadmin and lmgrd to /usr/local/sbin
+
+25 - tar xvf lmutil_x64_lsb.tar.gz
+26 - tar xvf lmgrd_x64_lsb.tar.gz
+
+27 - sudo cp lmutil lmgrd lmadmin-i86_lsb-11_11_0_0.bin /usr/local/sbin/
+
+	-> Make lmadmin executable
+
+28 - sudo chmod +x /usr/local/sbin/lmadmin-i86_lsb-11_11_0_0.bin
+
+	-> Symlink to lmadmin
+
+29 - sudo ln -s lmadmin-i86_lsb-11_11_0_0.bin /usr/local/sbin/lmadmin
+
+	-> Run lmadmin
+
+30 - /usr/local/sbin/lmadmin
+
+31 - sudo dpkg -b aksusbd-redhat-1.14
+
+	-> Install it!
+
+32 - sudo dpkg -i aksusbd-redhat-1.14.deb
+
+========================THE STEPS ABOVE DO NOT WORK!=========================
+
+-> There is a workaround for this issue.
+	See local file Xilinx_Install/Xilinx Issues
+
