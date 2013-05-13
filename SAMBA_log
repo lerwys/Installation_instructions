@@ -1,13 +1,18 @@
 --------------------------------------------------------
 Installation Instructions:
 
-1 -	sudo apt-get install samba samba-commom python-glade2 system-config-samba libsmbclient python-smbc smbclient smbfs samba4-common-bin samba-dsdb-modules samba-common-bin libsamba-credentials0 libsamba-hostconfig0 libsamba-policy0 libsamba-util0 winbind cifs-utils
-
 resource: http://ubuntuforums.org/showthread.php?t=288534
+
+1 - sudo apt-get install samba samba-commom python-glade2 \
+	system-config-samba libsmbclient python-smbc smbclient \
+	smbfs samba4-common-bin samba-dsdb-modules \
+	samba-common-bin libsamba-credentials0 \
+	libsamba-hostconfig0 libsamba-policy0 libsamba-util0 \
+	winbind cifs-utils
 
 	-> Create and edit the file /root/.smbcredentials file:
 
-4 - sudo vim /root/.smbcredentials
+2 - sudo vim /root/.smbcredentials
 
 	-> Write your network username and password
 
@@ -18,23 +23,23 @@ resource: http://ubuntuforums.org/showthread.php?t=288534
 
 	-> Change the /root/.smbcredentials permissions:
 
-5 -	sudo chmod 700 /root/.smbcredentials
+3 - sudo chmod 700 /root/.smbcredentials
 
 	-> Create mount point
 
-6 - sudo mkdir /media/<mount_point_name>
+4 - sudo mkdir /media/<mount_point_name>
 
 	-> Change its permissions and ownership
 
-7 - sudo chown <user>:<user> /media/<mount_point_name>
+5 - sudo chown <user>:<user> /media/<mount_point_name>
 
-8 - sudo chmod 755 /media/<mount_point_name>
+6 - sudo chmod 755 /media/<mount_point_name>
 
 	-> Edit (append) to the /etc/fstab file:
 
-9 - sudo vim /etc/fstab:
+7 - sudo vim /etc/fstab:
 
-	> //centaurus/repositorio <mount_point_name> cifs credentials=/root/.smbcredentials,iocharset=utf8,file_mode=0777,dir_mode=0777 0 0
+	> //centaurus/repositorio /media/windows_network  cifs credentials=/root/.smbcredentials,iocharset=utf8,file_mode=0777,dir_mode=0777 0 0
 
 	-> save and exit (:wq)
 
@@ -43,7 +48,7 @@ resource: http://ubuntuforums.org/showthread.php?t=288534
 		located in this repository. If it is not, edit it to 
 		reasssemble or just copy and paste the entire file.
 
-7 - sudo vim etc/samba/smb.conf
+8 - sudo vim etc/samba/smb.conf
 
 	-> Edit it!
 	-> save and exit (:wq)
@@ -52,15 +57,15 @@ resource: http://ubuntuforums.org/showthread.php?t=288534
 		windows hostnames. Edit the line beggining with 
 		"hosts ..." and add the following:
 		
-7 - sudo vim /etc/nsswitch.conf
+9 - sudo vim /etc/nsswitch.conf
 
-		> hosts: files dns wins
+	> hosts: files dns wins
 
 	-> save and exit (:wq)
 
 	-> Overview the config files.
 
-8 - testparm
+10 - testparm
 
 	-> It should look lie the follwing:
 
