@@ -103,3 +103,8 @@ testparm dump:
 		path = /var/lib/samba/printers
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	-> Mount all partitions specified in the fstab file
+
+11 - sudo mount -a
+
