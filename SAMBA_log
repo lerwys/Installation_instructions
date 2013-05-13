@@ -39,7 +39,7 @@ resource: http://ubuntuforums.org/showthread.php?t=288534
 
 7 - sudo vim /etc/fstab:
 
-	> //centaurus/repositorio /media/windows_network  cifs credentials=/root/.smbcredentials,iocharset=utf8,file_mode=0777,dir_mode=0777 0 0
+	> //centaurus/repositorio /media/<mount_point_name> cifs credentials=/root/.smbcredentials,iocharset=utf8,file_mode=0777,dir_mode=0777 0 0
 
 	-> save and exit (:wq)
 
@@ -67,7 +67,7 @@ resource: http://ubuntuforums.org/showthread.php?t=288534
 
 10 - testparm
 
-	-> It should look lie the follwing:
+	-> It should look like the follwing:
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++
 testparm dump:
