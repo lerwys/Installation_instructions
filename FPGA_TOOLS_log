@@ -123,34 +123,70 @@ Linux Chipscope Installation Instructions:
 --------------------------------------------------------
 HDL make Installation Instructions:
 
+	-> Clone the repository. If using ISim simulator tool 
+	clone the hdlmake2 repository. Otherwise, clone the 
+	hdlmake repository for ModelSim and Icarus simulators.
+	There are plans to merge the hdlmake2 repository to the
+	original hdlmake project.
+
+	-> hdlmake repository 
+
+1 - git clone git://ohwr.org/misc/hdl-make.git
+
+	-> hdlmake2 repository
+
+1 - git clone git://github.com/lerwys/hdl-make2.git
 
 	-> Put hdlmake in a directory listed in PATH, for example:
 
-1 - sudo ln -s <PATH_TO_HDLMAKE> /usr/bin/hdlmake
+1 - sudo ln -s <PATH_TO_HDLMAKE> /usr/bin/hdlmake2
 
 	-> Generate the makefiles
 
-2 - hdlmake --ise-proj --make-ise
+2 - hdlmake2 --ise-proj --make-ise
 
-	-> Build it! Synthetize. You may the time command in order to
-		verify how much time was spent during synthesis. Additionally,
-		we redirect the stdout and stderr to a file. Otherwise, it
-		wouldn't be possible to analyse the output log.
+	-> Build it! Synthetize. You may use the time command in order
+	to verify how much time was spent during synthesis. Additionally,
+	we redirect the stdout and stderr to a file. Otherwise, it
+	wouldn't be possible to analyze the output log.
 
-3 - time make local > synth_output.txt 2>&1
+3 - time make local | tee synth_output.txt
 
 --------------------------------------------------------
 Cross Compiling for LM32:
 
 	-> Install missing libraries
 
-1 - sudo apt-get install apt-get install lib32z1
-2 - sudo mkdir /opt/gcc-lm32
-3 - sudo tar xvf <path_to_lm32_gcc>.tar.xz
+1 - sudo apt-get install lib32z1
 
-	-> Run specific makefile or add the CROSS_COMPILE environment variable as follows:
+	-> Download gcc-lm32 port from this repository (at binaries folder)
 
-4 - CROSS_COMPILE="<path_to_lm32_gcc_toolchain>/bin/lm32-elf-"
+	-> Create a suitable location for installing the binaries.
+	Throughout this guide, this path will be called <path_to_gcc_lm32>.
+	
+	-> Although any path will do, it is recommended to use 
+	"/opt/gcc-lm32". If choosing this path,	substitute
+	<path_to_gcc_lm32> to /opt/gcc-lm32 in the next steps.
+
+2 - sudo mkdir <path_to_gcc_lm32>
+3 - cd <path_to_gcc_lm32>
+4 - sudo tar xvf <path_to_downloaded_gcc_binary>/gcc-4.5.3-lm32.tar.xz
+
+	-> Change folder permissions
+
+3 - sudo chmod -R 755 <path_to_gcc_lm32>
+
+	-> Add the CROSS_COMPILE environment variable to your .bashrc
+	or other user script as follows. I will use the ~/.bashrc file:
+
+4 - vim ~/.bashrc
+
+	-> Append and export the variable
+
+	CROSS_COMPILE="<path_to_gcc_lm32>/bin/lm32-elf-"
+	export CROSS_COMPILE
+
+	-> Save and exit the file (:wq)
 
 --------------------------------------------------------
 UrJTAG for debug:
