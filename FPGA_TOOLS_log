@@ -3,42 +3,42 @@ Xilinx Installation Instructions:
 
 1 - Install ISE Xilinx
 
-	-> Set environment variables
+  -> Set environment variables
 
 2 - vim ~/.bashrc
 
-	LM32_TOOLS=/opt/gcc-lm32/bin
-	XILINX=/opt/Xilinx/13.4/ISE_DS
-	export XILINX
-	HOST_PLATFORM=lin64
-	export HOST_PLATFORM
-	XILINX_BIN=${XILINX}/ISE/bin/${HOST_PLATFORM}
-	export XILINX_BIN
-	PATH=${PATH}:${XILINX_BIN}:${LM32_TOOLS}
-	#XILINX_EDK=${XILINX}/ISE/EDK
-	#export XILINX_EDK
-	XILINX_CSE_TCL=${XILINX}/ISE/cse/tcl
-	#XILINX_CSE_TCL=/usr/lib/tclx8.4/
-	export XILINX_CSE_TCL
-	#export LD_PRELOAD="/usr/local/lib/libusb-driver.so"
-	export XKEYSYMDB=/usr/share/X11/XKeysymDB
-	export DISPLAY=:0
+  LM32_TOOLS=/opt/gcc-lm32/bin
+  XILINX=/opt/Xilinx/13.4/ISE_DS
+  export XILINX
+  HOST_PLATFORM=lin64
+  export HOST_PLATFORM
+  XILINX_BIN=${XILINX}/ISE/bin/${HOST_PLATFORM}
+  export XILINX_BIN
+  PATH=${PATH}:${XILINX_BIN}:${LM32_TOOLS}
+  #XILINX_EDK=${XILINX}/ISE/EDK
+  #export XILINX_EDK
+  XILINX_CSE_TCL=${XILINX}/ISE/cse/tcl
+  #XILINX_CSE_TCL=/usr/lib/tclx8.4/
+  export XILINX_CSE_TCL
+  #export LD_PRELOAD="/usr/local/lib/libusb-driver.so"
+  export XKEYSYMDB=/usr/share/X11/XKeysymDB
+  export DISPLAY=:0
 
-	-> save and exit (:wq)
+  -> save and exit (:wq)
 
-	-> Source the file to apply the settings to the current terminal session
+  -> Source the file to apply the settings to the current terminal session
 3 - . ~/.bashrc
 
-	-> Install Xilinx Cable drivers
+  -> Install Xilinx Cable drivers
 
 4 - sudo apt-get install git-core gitk git-gui libusb-dev build-essential libc6-dev-i386 fxload
 
-	-> Go to a folder at your preference. You must have write
-		permissions!
+  -> Go to a folder at your preference. You must have write
+    permissions!
 
 5 - cd ~
 
-	-> Clone the repository
+  -> Clone the repository
 
 6 - git clone git://git.zerfleddert.de/usb-driver
 7 - cd usb-driver
@@ -47,26 +47,43 @@ Xilinx Installation Instructions:
 9 - sudo ./setup_pcusb /opt/Xilinx/13.4/ISE_DS/ISE/
 
 12 - Don't forget to source the settings32.sh (32-bit systems),
-		settings64.sh (64-bit systems) or the ~/.bashrc file
-		depending on where you put the environment variable.
+    settings64.sh (64-bit systems) or the ~/.bashrc file
+    depending on where you put the environment variable.
 
-	-> . /opt/Xilinx/13.4/ISE_DS/settings64.sh or
-	-> . /opt/Xilinx/13.4/ISE_DS/settings32.sh
+  -> . /opt/Xilinx/13.4/ISE_DS/settings64.sh or
+  -> . /opt/Xilinx/13.4/ISE_DS/settings32.sh
+
+13 - On ubuntu systems 12.10 and 13.04 ISim (Xilinx Simulator)
+      gives a fatal error when trying to simulate any design,
+      even an empty one. To fix this move the Xilinx standard C++
+      libraries to a backup folder, so that it will link against
+      the system ones. Substitute 13.4 to your ISE version and lin
+      and lin64 to your host architecture (e.g., nt and nt64 for
+      Windows systems).
+
+  -> cd /opt/Xilinx/13.4/ISE_DS/ISE/lib/lin/
+  -> mkdir orig && mv libstdc++* orig
+  -> cd /opt/Xilinx/13.4/ISE_DS/ISE/lib/lin64/
+  -> mkdir orig && mv libstdc++* orig
+  -> cd /opt/Xilinx/13.4/ISE_DS/common/lib/lin/
+  -> mkdir orig && mv libstdc++* orig
+  -> cd /opt/Xilinx/13.4/ISE_DS/common/lib/lin64/
+  -> mkdir orig && mv libstdc++* orig﻿
 
 --------------------------------------------------------
 Installing Ubunutu Terminal Instructions:
 Source: http://strdoc.com/comment/417
 
-	-> Install minicom
+  -> Install minicom
 
 1 - sudo apt-get install minicom
 
-	-> Find the name your serial port
+  -> Find the name your serial port
 
 2 - dmesg | grep tty
 
-	-> in the output look for something like "ttyUSB0".
-		My output was something like this:
+  -> in the output look for something like "ttyUSB0".
+    My output was something like this:
 
 [    0.000000] console [tty0] enabled
 [    3.815470] serial8250: ttyS0 at I/O 0x3f8 (irq = 4) is a 16550A
@@ -75,170 +92,170 @@ Source: http://strdoc.com/comment/417
 [195933.979161] usb 4-1: cp210x converter now attached to ttyUSB0
 [196991.760206] cp210x ttyUSB0: cp210x converter now disconnected from ttyUSB0
 [199153.839153] usb 4-1: cp210x converter now attached to ttyUSB0
-	-> This means the device correspond to my serial port is ttyUSB0.
-	-> Configure minicom
+  -> This means the device correspond to my serial port is ttyUSB0.
+  -> Configure minicom
 
 3 - sudo minicom -s
 
-	-> Use the keyboard keys to select the menu item Serial port setup.
-	-> Enter A to change the Serial Device to /dev/ttyUSB0, 
-		and then enter E to change the line speed to 9600 8N1
-	-> Using arrow keys, select Save setup as dfl
-	-> Select Exit from Minicom.
-	-> Next time, from the terminal, you only need to run 
-		"sudo minicom" in order to start the terminal application.
+  -> Use the keyboard keys to select the menu item Serial port setup.
+  -> Enter A to change the Serial Device to /dev/ttyUSB0,
+    and then enter E to change the line speed to 9600 8N1
+  -> Using arrow keys, select Save setup as dfl
+  -> Select Exit from Minicom.
+  -> Next time, from the terminal, you only need to run
+    "sudo minicom" in order to start the terminal application.
 
 --------------------------------------------------------
 Linux Chipscope Installation Instructions:
 
-	Source:
-	http://xlnx.lithium.com/t5/Installation-and-Licensing/
-	ISE-12-1-Linux-Installs/td-p/69399
+  Source:
+  http://xlnx.lithium.com/t5/Installation-and-Licensing/
+  ISE-12-1-Linux-Installs/td-p/69399
 
-	-> On Ubuntu (specifically), calling the chipscope (analyzer)
-	by the command line issues an error:
+  -> On Ubuntu (specifically), calling the chipscope (analyzer)
+  by the command line issues an error:
 
-	"
-	...
-	/opt/Xilinx/13.4/ISE_DS/ISE/bin/lin64/unwrapped/analyzer: 74:
-	/opt/Xilinx/13.4/ISE_DS/ISE/bin/lin64/unwrapped/cs_common.sh:
-	XIL_DIRS[1]=/opt/Xilinx/13.4/ISE_DS/ISE/: not found
-	...
-	"
+  "
+  ...
+  /opt/Xilinx/13.4/ISE_DS/ISE/bin/lin64/unwrapped/analyzer: 74:
+  /opt/Xilinx/13.4/ISE_DS/ISE/bin/lin64/unwrapped/cs_common.sh:
+  XIL_DIRS[1]=/opt/Xilinx/13.4/ISE_DS/ISE/: not found
+  ...
+  "
 
-	-> Along with others of the same kind.
+  -> Along with others of the same kind.
 
-	-> The problem resides on the interpreter called within the script
-	(#!/bin/sh). As on Ubunutu sh points to dash and not to bash, 
-	inconsistencies will appear. To fix the issue you have to 
-	reconfigure ubunutu to use bash	instead of dash (just changing
-	the shebang to #!/bin/bash did not work for me).
+  -> The problem resides on the interpreter called within the script
+  (#!/bin/sh). As on Ubunutu sh points to dash and not to bash,
+  inconsistencies will appear. To fix the issue you have to
+  reconfigure ubunutu to use bash instead of dash (just changing
+  the shebang to #!/bin/bash did not work for me).
 
-	-> Issue the following command:
+  -> Issue the following command:
 
-	1 -sudo dpkg-reconfigure dash
+  1 -sudo dpkg-reconfigure dash
 
-	-> Selects no when prompted. This should solve the issue
+  -> Selects no when prompted. This should solve the issue
 
 --------------------------------------------------------
 HDL make Installation Instructions:
 
-	-> Clone the repository. If using ISim simulator tool 
-	clone the hdlmake2 repository. Otherwise, clone the 
-	hdlmake repository for ModelSim and Icarus simulators.
-	There are plans to merge the hdlmake2 repository to the
-	original hdlmake project.
+  -> Clone the repository. If using ISim simulator tool
+  clone the hdlmake2 repository. Otherwise, clone the
+  hdlmake repository for ModelSim and Icarus simulators.
+  There are plans to merge the hdlmake2 repository to the
+  original hdlmake project.
 
-	-> hdlmake repository 
+  -> hdlmake repository
 
 1 - git clone git://ohwr.org/misc/hdl-make.git
 
-	-> hdlmake2 repository
+  -> hdlmake2 repository
 
 1 - git clone git://github.com/lerwys/hdl-make2.git
 
-	-> Put hdlmake in a directory listed in PATH, for example:
+  -> Put hdlmake in a directory listed in PATH, for example:
 
 1 - sudo ln -s <PATH_TO_HDLMAKE> /usr/bin/hdlmake2
 
-	-> Generate the makefiles
+  -> Generate the makefiles
 
 2 - hdlmake2 --ise-proj --make-ise
 
-	-> Build it! Synthetize. You may use the time command in order
-	to verify how much time was spent during synthesis. Additionally,
-	we redirect the stdout and stderr to a file. Otherwise, it
-	wouldn't be possible to analyze the output log.
+  -> Build it! Synthetize. You may use the time command in order
+  to verify how much time was spent during synthesis. Additionally,
+  we redirect the stdout and stderr to a file. Otherwise, it
+  wouldn't be possible to analyze the output log.
 
 3 - time make local | tee synth_output.txt
 
 --------------------------------------------------------
 Cross Compiling for LM32:
 
-	-> Install missing libraries
+  -> Install missing libraries
 
 1 - sudo apt-get install lib32z1
 
-	-> Download gcc-lm32 port from this repository (at binaries folder)
+  -> Download gcc-lm32 port from this repository (at binaries folder)
 
-	-> Create a suitable location for installing the binaries.
-	Throughout this guide, this path will be called <path_to_gcc_lm32>.
-	
-	-> Although any path will do, it is recommended to use 
-	"/opt/gcc-lm32". If choosing this path,	substitute
-	<path_to_gcc_lm32> to /opt/gcc-lm32 in the next steps.
+  -> Create a suitable location for installing the binaries.
+  Throughout this guide, this path will be called <path_to_gcc_lm32>.
+
+  -> Although any path will do, it is recommended to use
+  "/opt/gcc-lm32". If choosing this path, substitute
+  <path_to_gcc_lm32> to /opt/gcc-lm32 in the next steps.
 
 2 - sudo mkdir <path_to_gcc_lm32>
 3 - cd <path_to_gcc_lm32>
 4 - sudo tar xvf <path_to_downloaded_gcc_binary>/gcc-4.5.3-lm32.tar.xz
 
-	-> Change folder permissions
+  -> Change folder permissions
 
 3 - sudo chmod -R 755 <path_to_gcc_lm32>
 
-	-> Add the CROSS_COMPILE environment variable to your .bashrc
-	or other user script as follows. I will use the ~/.bashrc file:
+  -> Add the CROSS_COMPILE environment variable to your .bashrc
+  or other user script as follows. I will use the ~/.bashrc file:
 
 4 - vim ~/.bashrc
 
-	-> Append and export the variable
+  -> Append and export the variable
 
-	CROSS_COMPILE="<path_to_gcc_lm32>/bin/lm32-elf-"
-	export CROSS_COMPILE
+  CROSS_COMPILE="<path_to_gcc_lm32>/bin/lm32-elf-"
+  export CROSS_COMPILE
 
-	-> Save and exit the file (:wq)
+  -> Save and exit the file (:wq)
 
 --------------------------------------------------------
 UrJTAG for debug:
 
-	-> Install missing libraries (libusb should be installed as well.
-		See "Xilinx Installation Instructions for more)
+  -> Install missing libraries (libusb should be installed as well.
+    See "Xilinx Installation Instructions for more)
 
 1 - sudo apt-get install libftdi-dev
 
-	-> Download d2xx drivers (the libftdi-dev did not include
-		header files for me)
+  -> Download d2xx drivers (the libftdi-dev did not include
+    header files for me)
 
 2 - wget http://www.ftdichip.com/Drivers/D2XX/Linux/libftd2xx1.1.12.tar.gz (for 64-bit linux)
 
-3 - tar xvzf libftd2xx1.1.12.tar.gz 
+3 - tar xvzf libftd2xx1.1.12.tar.gz
 4 - mv release libftd2xx1.1.12
 5 - cd libftd2xx1.1.12
 
 
-	-> Copy the header files to specified location
+  -> Copy the header files to specified location
 
 6 - sudo cp ftd2xx.h /usr/local/include/
 7 - sudo cp WinTypes.h /usr/local/include/
 
-	-> Change its perimission
+  -> Change its perimission
 
 8 - sudo chmod a+r /usr/local/include/ftd2xx.h /usr/local/include/WinTypes.h
 
-	-> Download UrJTAG
+  -> Download UrJTAG
 
 9 - wget http://sourceforge.net/projects/urjtag/files/
 
-	-> Install it
+  -> Install it
 
 10 - tar xzvf urjtag-x.y.tar.gz
 11 - cd urjtag-x.y
 12 - ./configure
 13 - make && make install
 
-	-> If anything goes wrong, check the documetation in 
-		http://urjtag.org/book/_compilation_and_installation.html
+  -> If anything goes wrong, check the documetation in
+    http://urjtag.org/book/_compilation_and_installation.html
 
 --------------------------------------------------------
-	General Tools Installation
+  General Tools Installation
 
-	-> Icarus Verilog Simulator
+  -> Icarus Verilog Simulator
 
-	1 - sudo apt-get install iverilog
+  1 - sudo apt-get install iverilog
 
-	-> Install GTKwave
+  -> Install GTKwave
 
-	2 - sudo apt-get install gtkwave
+  2 - sudo apt-get install gtkwave
 
 --------------------------------------------------------
 Known issues: from http://wienker.org/blog/?p=188 (old)
@@ -258,7 +275,7 @@ Error: Wind/U X-toolkit Error: wuDisplay: Can't open display
 Solution: export DISPLAY=:0
 
 Error: Wind/U Error (248): Failed to connect to the registry on server
-thinkpad Cannot register service: RPC: Unable to receive; 
+thinkpad Cannot register service: RPC: Unable to receive;
 errno = Connection refused
 Solution: sudo apt-get install portmap
 
