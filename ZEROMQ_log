@@ -1,0 +1,91 @@
+-------------------------------------------------------
+Requirements: make gcc libtool autoconf automake uuid uuid-dev git
+
+0 - sudo apt-get install make gcc libtool autoconf automake uuid uuid-dev git
+
+        -> If any error is encountered due to a missing file try to issue       the following command:
+
+0.1 - sudo apt-get install apt-file
+0.2 - apt-file search <NAME_OF_THE_MISSING_FILE>
+0.3 - sudo apt-get install <NAME_OF_THE_PACKAGE>
+ 
+--------------------------------------------------------
+Installation Instructions:
+
+	-> Download zeroMQ sources
+
+1 - wget http://download.zeromq.org/zeromq-4.0.3.tar.gz
+
+	-> Build and install (extracted from zeroMQ official
+	guides - http://zeromq.org/intro:get-the-software)
+
+	-> Unpack the .tar.gz source archive.
+
+2 - tar xvzf zeromq-4.0.3.tar.gz
+
+	-> Change to the extracted files folded
+
+3 - cd zeromq-4.0.3
+
+	-> Run ./configure, followed by make.
+
+4 - ./configure
+5 - make
+
+	-> To install ØMQ system-wide run sudo make install.
+
+6 - sudo make install
+
+	-> On Linux, run sudo ldconfig after installing ØMQ.
+
+7 - sudo ldconfig
+
+	-> Download czeroMQ sources (high-level C API)
+
+8 - wget http://download.zeromq.org/czmq-2.0.3.tar.gz
+
+	-> Build and install (extracted from zeroMQ official
+	http://czmq.zeromq.org/page:get-the-software)
+
+	-> Unpack the .tar.gz source archive.
+
+9 - tar xvzf czmq-2.0.3.tar.gz
+
+	-> Run ./configure, followed by make.
+
+10 - ./configure
+11 - make
+
+	-> To install ØMQ system-wide run sudo make install.
+
+12 - sudo make install
+
+	-> On Linux, run sudo ldconfig after installing CZMQ.
+
+13 - sudo ldconfig
+
+--------------------------------------------------------
+Building the examples:
+
+	-> Clone the examples repositor
+
+1 - git clone --depth=1 git://github.com/imatix/zguide.git
+
+	-> Go to your preferred programming language example folder:
+
+2 - cd examples/<PREFFERED_LANGUAGE>
+
+	-> If you are using the "C" examples you might have to change
+		the "c" script that comes along.
+	
+	-> In line 166. Change this:
+
+		> STDLIBS="-lpthread -lm"
+	
+	-> To this:
+
+		> STDLIBS="-lpthread -lm -lzmq -lczmq"
+
+	-> execute build command
+
+3 - ./build
