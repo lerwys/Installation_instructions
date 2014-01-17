@@ -1,0 +1,23 @@
+
+-------------------------------------------------------
+Requirements on Ubuntu 13.10: lsb-core lsb-base libc6:i386 libgcc1:i386 libstdc++5:i386 libstdc++6:i386
+
+ 0 - sudo lsb-core lsb-base libc6:i386 libgcc1:i386 libstdc++5:i386 libstdc++6:i386
+
+-------------------------------------------------------
+
+Installation Instructions:
+
+	-> Run the license manager
+
+ 1 - lmgrd -c <path_to_license> -log <path_to_log>
+
+	-> Create a startup script for autommatically
+	initializing the license server
+
+ 2 - vim /etc/rc.local
+
+	-> Add the following line at the end of the file, but
+	before the last "return 0"
+
+ 	> lmgrd -c <path_to_license> -log <path_to_log>
