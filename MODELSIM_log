@@ -1,0 +1,19 @@
+
+-------------------------------------------------------
+Requirements on Ubuntu 13.10: libxext6:i386 libx11-6:i386 libxtst6:i386 libxi6:i386 openjdk-6-jdk:i386 libxft2:i386 libncurses5:i386 
+
+ 0 - sudo apt-get install libxext6:i386 libx11-6:i386 libxtst6:i386 libxi6:i386 openjdk-6-jdk:i386 libxft2:i386 libncurses5:i386
+
+	-> Make symlink to libjvm
+ 
+ 0.1 - sudo ln -s /usr/lib/jvm/java-6-openjdk-i386/jre/lib/i386/server/libjvm.so /usr/lib/i386-linux-gnu/libjvm.so
+
+-------------------------------------------------------
+
+Installation Instructions:
+
+	-> Run the installer
+
+ 1 - sudo ./install.linux
+
+	-> Follow the GUI instructions to complete installation
