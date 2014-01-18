@@ -1,3 +1,14 @@
+-------------------------------------------------------
+Requirements: libusb-dev
+
+0 - sudo apt-get install libusb-dev
+
+        -> If any error is encountered due to a missing file try to issue       the following command:
+
+0.1 - sudo apt-get install apt-file
+0.2 - apt-file search <NAME_OF_THE_MISSING_FILE>
+0.3 - sudo apt-get install <NAME_OF_THE_PACKAGE>
+
 --------------------------------------------------------
 Xilinx Installation Instructions:
 
