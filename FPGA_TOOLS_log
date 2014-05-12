@@ -81,6 +81,18 @@ Xilinx Installation Instructions:
   -> cd /opt/Xilinx/13.4/ISE_DS/common/lib/lin64/
   -> mkdir orig && mv libstdc++* orig﻿
 
+14 - If you are installing ISE version 14.6 or a similiar one
+(Vivado, for instance) and you encounter the following error
+when running PlanAhead:
+
+  > /opt/Xilinx/14.6/ISE_DS/PlanAhead/bin/rdiArgs.sh: line 95:  4632 
+  > Segmentation fault      (core dumped) "$RDI_PROG" "$@"
+
+  Try doing the following (from http://forums.xilinx.com/t5/Installation-and-Licensing/RHEL5-64-bit-ISE-13-1-PlanAhead-launch-from-w-in-ISE-fails/td-p/148624/page/2):
+
+  -> cd /opt/Xilinx/14.6/ISE_DS/PlanAhead/tps/lnx64/jre/lib/amd64/server
+  -> mv libjvm.so{,-orig}
+  -> ln -s /usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/server/libjvm.so
 --------------------------------------------------------
 Installing Ubunutu Terminal Instructions:
 Source: http://strdoc.com/comment/417
