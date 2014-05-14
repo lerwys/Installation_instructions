@@ -48,3 +48,17 @@ LTIB Vadatech Installation Instructions
 
   ./mux_server.sh <dummy install directory>/ltib-p2020ds-20100331/
 
+-------------------------------------------------------
+Installing all patches:
+
+  -> Optionally, on section "LTIB Vadatech Installation Instructions"
+  step 4, one can apply all patches at once.
+
+  -> Go to patches/ltib/fixes
+
+1 - cd patches/ltib/fixes
+
+  -> Find all .sh files and execute them:
+
+2 - find . -iname "*.sh" -exec '{}' <dummy install directory>/ltib-p2020ds-20100331/ \;
+
