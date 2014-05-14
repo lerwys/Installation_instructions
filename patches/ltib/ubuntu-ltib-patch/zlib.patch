@@ -1,0 +1,9 @@
+diff -uNr bin.ori/Ltibutils.pm bin/Ltibutils.pm
+--- bin.ori/Ltibutils.pm	2012-10-02 10:48:54.047381510 -0500
++++ bin/Ltibutils.pm	2012-10-02 10:51:43.947390148 -0500
+@@ -584,6 +584,7 @@
+                     },
+     zlib         => sub { my @f = (glob('/usr/lib/libz.so*'),
+                                    glob('/lib/libz.so*'),
++                                   glob('/lib/i386-linux-gnu/libz.so*'),
+                                    glob('/lib64/libz.so*')  ); @f > 1 ? 1 : 0 },

@@ -1,0 +1,41 @@
+This folder contains all the issues I faced when building ltib on my Ubuntu host 11.10
+If you face any of these error during Ltib building in your 11.10
+
+Please run the appropriate command given below.
+
+be careful while giving ltib path while running commands 
+
+ltib path is that which you have given during installing ltib 
+
+for me it is /home/cmc/ltibsetup/ltib it must contain all the folders like bin,config,dist,doc.....
+So it look like
+  cmc@cmc-ThinkCentre-M71e:~/ltibsetup/ltib $ ls
+   bin     COPYING  doc   host_config.log  README        rootfs      rpm
+   config  dist     hash  ltib             RELEASE_INFO  rootfs.tmp  tmp
+  so I will run like ./sparse.sh /home/cmc/ltibsetup/ltib
+
+After downloading this folder enter into this folder and run the appropriate command where u faced error
+please check if any permission denied aspects while running scripts
+give them execute permissions by eg : chmod +x rpmdb.sh
+
+rpmdb: --force-debian  :  ./rpmdb.sh <give your ltib path>
+mtd-utils Build failed :  ./mtd-utils.sh <give your ltib path>
+lkc Build failed       :  ./lkc.sh <give your ltib path>
+sparse Build failed    :  ./sparse.sh <give your ltib path> 
+mux_server failed      :  ./mux_server.sh <give your ltib path>
+e2fsprogs failed       :  ./e2fsprogs.sh <give your ltib path>
+fontconfig failed      :  ./fontconfig.sh <give your ltib path>
+libxcb                 :  ./libxcb.sh <give your ltib path>
+imx-lib                :  ./imx-lib <give your ltib path>
+
+Package                Minimum ver   Installed info
+   -------                -----------   ---------------
+   glibc-devel            0             not installed
+   zlib                   0             not installed
+﻿   --->> build failed  :  ./glibzlib.sh <give your ltib path>
+
+pardon my english I am not good at english.
+
+Regards,
+Vijay Kumar Pulluri.
+vijaykumar.pulluri@gmail.com

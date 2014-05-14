@@ -1,0 +1,12 @@
+diff -uNr lkc-1.4/Makefile lkc-1.4-merge/Makefile
+--- lkc-1.4/Makefile	2011-10-26 19:55:35.541610071 +0000
++++ lkc-1.4-merge/Makefile	2011-10-26 19:53:13.501604779 +0000
+@@ -100,7 +100,7 @@
+ 	cd lxdialog && $(MAKE)
+ 
+ mconf: $(mconf_OBJ) $(lxdialog_LIB)
+-	$(CC) $(LDFLAGS) $(mconf_LIBS) $^ -o $@
++	$(CC) $(LDFLAGS) $^ -o $@ $(mconf_LIBS)
+ 
+ conf: $(conf_OBJ)
+ 	$(CC) $(LDFLAGS) $^ -o $@

@@ -1,0 +1,11 @@
+--- bin/Ltibutils.pm.orig	2014-05-14 09:21:09.394546011 -0300
++++ bin/Ltibutils.pm	2014-05-14 09:30:49.470564573 -0300
+@@ -560,7 +560,7 @@
+     binutils         => 'ar --version 2>/dev/null',
+     'gcc-c++'        => 'g++ --version 2>/dev/null',
+     glibc            => 'ldd --version 2>/dev/null',
+-    'glibc-devel'    => sub { -f '/usr/lib/libm.so' || -f '/usr/lib64/libz.so'},
++    'glibc-devel'    => sub { -f '/usr/lib/x86_64-linux-gnu/libm.so' || -f '/usr/lib/libm.so' || -f '/usr/lib64/libz.so'},
+     'glibc-headers'  => sub { -f '/usr/include/stdio.h' },
+     'libstdc++' => sub {
+             return system_nb(<<TXT) == 0;

@@ -1,0 +1,113 @@
+--- a/include/pm_defs_priv.h	2012-08-08 15:35:34.868629413 +0400
++++ b/include/pm_defs_priv.h	2012-08-08 15:35:34.880623384 +0400
+@@ -136,12 +136,12 @@
+     struct {
+ #   if __BYTE_ORDER == __LITTLE_ENDIAN
+       uint8_t  type     : 2;  /* see _pm_symbol_type_t for values */
+-      uint8_t  unused   : 5;
++      uint8_t  unused0  : 5;
+       uint8_t  validFlag: 1;  /* 1 - valid; 0 - not valid */
+ #   else
+ #     if __BYTE_ORDER == __BIG_ENDIAN  
+       uint8_t  validFlag: 1;  /* 1 - valid; 0 - not valid */
+-      uint8_t  unused   : 5;
++      uint8_t  unused1  : 5;
+       uint8_t  type     : 2;  /* see _pm_symbol_type_t for values */
+ #     else
+ #       error "__BYTE_ORDER is neither __LITTLE_ENDIAN nor __BIG_ENDIAN."
+@@ -197,23 +197,23 @@
+       /* byte with bits 112-119 */
+       struct {
+         uint8_t  passLink     : 5;
+-        uint8_t  unused       : 2;
++        uint8_t  unused0      : 2;
+         uint8_t  side         : 1;  /* 0/1 - left/right from the L/R marker */
+       } _PM_PACKED;
+       /* byte with bits 104-111 */
+       struct {
+         uint8_t  altLink      : 5;  /* next alternate TL to use */
+-        uint8_t  unused       : 3;  /* next TL to use after pass */
++        uint8_t  unused1      : 3;  /* next TL to use after pass */
+       } _PM_PACKED;
+       /* byte with bits 96-103 */
+       struct {
+         uint8_t  minRepeatNum : 7;  /* minimum repeat number for this TL */
+-        uint8_t  unused       : 1;
++        uint8_t  unused2      : 1;
+       } _PM_PACKED;
+       /* byte with bits 88-95 */
+       struct {
+         uint8_t  maxRepeatNum : 7;  /* maximum repeat number for this TL */
+-        uint8_t  unused       : 1;
++        uint8_t  unused3      : 1;
+       } _PM_PACKED;
+ #   else
+ #     if __BYTE_ORDER == __BIG_ENDIAN  
+@@ -231,22 +231,22 @@
+       /* byte with bits 112-119 */
+       struct {
+         uint8_t  side         : 1;  /* 0/1 - left/right from the L/R marker */
+-        uint8_t  unused       : 2;
++        uint8_t  unused4      : 2;
+         uint8_t  passLink     : 5;
+       } _PM_PACKED;
+       /* byte with bits 104-111 */
+       struct {
+-        uint8_t  unused       : 3;  /* next TL to use after pass */
++        uint8_t  unused5      : 3;  /* next TL to use after pass */
+         uint8_t  altLink      : 5;  /* next alternate TL to use */
+       } _PM_PACKED;
+       /* byte with bits 96-103 */
+       struct {
+-        uint8_t  unused       : 1;
++        uint8_t  unused6      : 1;
+         uint8_t  minRepeatNum : 7;  /* minimum repeat number for this TL */
+       } _PM_PACKED;
+       /* byte with bits 88-95 */
+       struct {
+-        uint8_t  unused       : 1;
++        uint8_t  unused7      : 1;
+         uint8_t  maxRepeatNum : 7;  /* maximum repeat number for this TL */
+       } _PM_PACKED;
+ #     else
+@@ -274,34 +274,34 @@
+       /* byte with bits 120 - 127 */
+       struct {
+         int8_t  startPosition: 7;  /* start position in the 1st TL */
+-        int8_t  unused       : 1;
++        int8_t  unused0      : 1;
+       } _PM_PACKED;
+       /* byte with bits 112 - 119 */
+       struct {
+         uint8_t  validTlNum  : 5; /*  number of valid TLs */
+-        uint8_t  unused      : 2;
++        uint8_t  unused1     : 2;
+         uint8_t  reportFlag  : 1;  /* 1 - report a match; 0 - do not report */
+       } _PM_PACKED;
+ #   else
+ #     if __BYTE_ORDER == __BIG_ENDIAN  
+       /* byte with bits 127 - 120 */
+       struct {
+-        int8_t  unused       : 1;
++        int8_t  unused2      : 1;
+         int8_t  startPosition: 7;  /* start position in the 1st TL */
+       } _PM_PACKED;
+       /* byte with bits 119 - 112 */
+       struct {
+         uint8_t  reportFlag  : 1;  /* 1 - report a match; 0 - do not report */
+-        uint8_t  unused      : 2;
++        uint8_t  unused3     : 2;
+         uint8_t  validTlNum  : 5; /* number of valid TLs */
+       } _PM_PACKED;
+ #     else
+ #       error "__BYTE_ORDER is neither __LITTLE_ENDIAN nor __BIG_ENDIAN."
+ #     endif
+ #   endif
+-      uint8_t   unused1;         /* 111 - 104 */
++      uint8_t   unused4;         /* 111 - 104 */
+       uint8_t   set;             /* 103 -  96 expression set */
+-      uint16_t  unused2;         /*  95 -  80 */
++      uint16_t  unused5;         /*  95 -  80 */
+       uint16_t  subsetMask;      /*  79 -  64 subset mask */
+       uint32_t  reactionIdx;     /*  63 -  32 first reaction index */
+       uint32_t  tag;             /*  31 -   0 user tag */

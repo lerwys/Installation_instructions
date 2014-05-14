@@ -1,0 +1,42 @@
+# template = pme_tools-common.tmpl
+
+%define pfx /opt/freescale/rootfs/%{_target_cpu}
+
+Summary		: Pattern matcher tools
+Name		: pme_tools
+Version		: 1.0.0
+Release		: a6
+License		: Freescale EULA
+Vendor		: Freescale
+Packager	: Paul Barrette
+Group		: Development/Tools
+URL		: git://git.am.freescale.net/r01325/pme_tools.git
+Source		: %{name}-%{version}-%{release}.tar.gz
+BuildRoot	: %{_tmppath}/%{name}
+Prefix		: %{pfx}
+Patch0          : %{name}-%{version}-%{release}-host-support.patch
+Patch1          : %{name}-%{version}-%{release}-udev-and-sysfs-support.patch
+Patch2          : %{name}-%{version}-%{release}-1_5-Add-hash-table-utility-files.patch
+Patch3          : %{name}-%{version}-%{release}-2_5-Add-PMC-api-files.patch
+Patch4          : %{name}-%{version}-%{release}-3_5-Add-PMC-client.patch
+Patch5          : %{name}-%{version}-%{release}-4_5-Add-PMC-daemon-files.patch
+Patch6          : %{name}-%{version}-%{release}-5_5-Add-PMC-makefiles.patch
+Patch7          : %{name}-%{version}-%{release}-build-rule-cleanup.patch
+Patch8          : %{name}-%{version}-%{release}-fsl_pme.h-updated.patch
+Patch9          : %{name}-%{version}-%{release}-pm_defs_priv.h-double-unused.patch
+
+%Description
+%{summary}
+
+%Prep
+%setup -q
+%patch0 -p1
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
+%patch4 -p1
+%patch5 -p1
+%patch6 -p1
+%patch7 -p1
+%patch8 -p1
+%patch9 -p1

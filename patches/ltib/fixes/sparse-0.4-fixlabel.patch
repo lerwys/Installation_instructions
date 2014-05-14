@@ -1,0 +1,14 @@
+diff -uNr sparse-0.4/parse.h sparse-0.4-mod//parse.h
+--- sparse-0.4/parse.h	2007-09-15 19:56:10.000000000 +0000
++++ sparse-0.4-mod//parse.h	2011-10-26 21:05:05.717779729 +0000
+@@ -35,10 +35,6 @@
+ 		struct /* declaration */ {
+ 			struct symbol_list *declaration;
+ 		};
+-		struct /* label_arg */ {
+-			struct symbol *label;
+-			struct statement *label_statement;
+-		};
+ 		struct {
+ 			struct expression *expression;
+ 			struct expression *context;
