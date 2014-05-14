@@ -1,6 +1,7 @@
 -------------------------------------------------------
 Requirements: Tested on Ubuntu 14.04
 
+sudo apt-get -y install gettext libgtk2.0-dev rpm bison m4 libfreetype6-dev libdbus-glib-1-dev liborbit2-dev intltool ccache zlib1g zlib1g-dev gcc g++ libtool uuid-dev liblzo2-dev tcl wget libncurses5-dev libncursesw5-dev lib32z1 libglib2.0-dev xsltproc libc6-dev-i386
 --------------------------------------------------------
 LTIB Vadatech Installation Instructions 
 (Based on the Vadatech AMC717 and AMC530 User Manual):
