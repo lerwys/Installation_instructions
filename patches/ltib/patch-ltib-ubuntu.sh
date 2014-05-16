@@ -5,6 +5,6 @@
 #tar -xzvf ubuntu-ltib-patch.tgz
 
 # execute the script which do the patching
-ltibDir=`pwd`
+ltibDir=$1
 cd ubuntu-ltib-patch
 ./install-patches.sh $ltibDir
