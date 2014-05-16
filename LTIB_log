@@ -90,6 +90,21 @@ LTIB Vadatech Installation Instructions
   
   *** END OF OPTIONAL step #2
 
+  *** OPTIONAL step #3
+  
+  -> If an specific pacakge was not found on bitshrine nor in
+  the pkgs folder, you can download some BSPs from freescale
+  to get the missing pacakges. Two known BSPs which tends to
+  have a good amount of pkgs are:
+  
+    * Linux BSP for MPC8569MDS – BETA
+    * Linux BSP for Freescale MPC8568MDS	
+
+  They can be found in http://www.freescale.com/webapp/sps/site/overview.jsp?code=CW_BSP_PPC_85XX
+
+  -> If the pkg is found just copy all the related packages to
+  /opt/freescale/pkgs
+
 -------------------------------------------------------
 Installing all patches:
 
