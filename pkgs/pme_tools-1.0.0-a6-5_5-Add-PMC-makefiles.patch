@@ -1,0 +1,66 @@
+From fea56a32161d704ad4f1c9c4c54d987a11d85a5b Mon Sep 17 00:00:00 2001
+From: Vince Hendricks <vince.hendricks@freescale.com>
+Date: Tue, 13 Oct 2009 11:31:51 -0400
+Subject: [PATCH 5/6] Add and update make files for PMC.
+
+Add/update the make files for the new PMC code.
+
+Signed-off-by: Vince Hendricks <vince.hendricks@freescale.com>
+Signed-off-by: Paul Barrette <paul.barrette@freescale.com>
+---
+ Makefile                 |    2 +-
+ pmConfiguration/Makefile |   29 +++++++++++++++++++++++++++++
+ 2 files changed, 30 insertions(+), 1 deletions(-)
+ create mode 100644 pmConfiguration/Makefile
+
+diff --git a/Makefile b/Makefile
+index f721db6..66496d0 100644
+--- a/Makefile
++++ b/Makefile
+@@ -11,7 +11,7 @@
+ # 
+ # ***********************< END COPYRIGHT >**************************
+ # ---- USER MUST EDIT DIRS TO ADD THE DIR TO COMPILE IN -----
+-DIRS := common controlInterface loaderAgent applications
++DIRS := common controlInterface loaderAgent applications pmConfiguration
+ # ---- DO NOT EDIT BELOW THIS LINE --------------------------
+ #
+ # ----=[NOTE]=----
+diff --git a/pmConfiguration/Makefile b/pmConfiguration/Makefile
+new file mode 100644
+index 0000000..40cdab3
+--- /dev/null
++++ b/pmConfiguration/Makefile
+@@ -0,0 +1,29 @@
++# ***********************< BEGIN COPYRIGHT >************************
++#  
++#   Copyright 2009, Freescale Semiconductor, Inc.  All Rights Reserved.
++#  
++#    NOTICE: The information contained in this file is proprietary 
++#    to Freescale Semiconductor and is being made available to 
++#    Freescale's customers under a specific license agreement. 
++#    Use or disclosure of this information is permissible only 
++#    under the terms of the license agreement. 
++#  
++# 
++# ***********************< END COPYRIGHT >**************************
++
++#-----[ Applications ]-----
++APPS               := pmcc pmcd
++
++pmcc_objs           := pmcapi.o pmcc.o
++pmcc_link_libs      := swutilities regex statefulrules 
++pmcc_sys_link_libs  := rt
++
++
++pmcd_objs           := pmcd.o
++pmcd_link_libs      := swutilities pmlacommon pmlalocal pmci
++pmcd_priv_link_libs := pmll
++pmcd_sys_link_libs  := rt
++#
++# -----[ Rules ]-----
++include $(RULE_PATH)/Makefile.default
++# nothing below this line
+-- 
+1.6.0
+

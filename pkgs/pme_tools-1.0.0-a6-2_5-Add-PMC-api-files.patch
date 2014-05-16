@@ -1,0 +1,2910 @@
+From 6e881a1711878d1b5f896f684526358390b968f4 Mon Sep 17 00:00:00 2001
+From: Vince Hendricks <vince.hendricks@freescale.com>
+Date: Tue, 13 Oct 2009 11:31:48 -0400
+Subject: [PATCH 2/6] Add PMC api files.
+
+Add the PMC api and supporting private functions files.
+
+Signed-off-by: Vince Hendricks <vince.hendricks@freescale.com>
+Signed-off-by: Paul Barrette <paul.barrette@freescale.com>
+---
+ pmConfiguration/pmc_private.h |  497 +++++++++++
+ pmConfiguration/pmcapi.c      | 1810 +++++++++++++++++++++++++++++++++++++++++
+ pmConfiguration/pmcapi.h      |  564 +++++++++++++
+ 3 files changed, 2871 insertions(+), 0 deletions(-)
+ create mode 100644 pmConfiguration/pmc_private.h
+ create mode 100644 pmConfiguration/pmcapi.c
+ create mode 100644 pmConfiguration/pmcapi.h
+
+diff --git a/pmConfiguration/pmc_private.h b/pmConfiguration/pmc_private.h
+new file mode 100644
+index 0000000..4f37a0a
+--- /dev/null
++++ b/pmConfiguration/pmc_private.h
+@@ -0,0 +1,497 @@
++/************************< BEGIN COPYRIGHT >************************
++ *  
++ *   Copyright 2009, Freescale Semiconductor, Inc.  All Rights Reserved.
++ *  
++ *    NOTICE: The information contained in this file is proprietary 
++ *    to Freescale Semiconductor and is being made available to 
++ *    Freescale's customers under a specific license agreement. 
++ *    Use or disclosure of this information is permissible only 
++ *    under the terms of the license agreement. 
++ *  
++ * 
++ ************************< END COPYRIGHT >***************************/
++/* ========================================================================== *
++ * Pattern Matcher Configuration Private interface
++ *
++ * File Name: pmc_private.h
++ * Author   : Vince Hendricks
++ * ========================================================================== */
++
++#ifndef __PMC_PRIVATE_H__
++#define __PMC_PRIVATE_H__
++
++#include <time.h>
++#include <netinet/in.h>
++
++#define SERVER_SOCK_FILE_PATH "/tmp/pmcd.sock"
++#define _PMC_MAX_ERROR_MSG_SIZE 1000
++
++/* --------------------------------------------------------------------------
++ * Print to log file macro
++ * -------------------------------------------------------------------------- */
++#define TIME_STRING_SIZE               256
++FILE   *_pmc_log_stream_pg;
++time_t  _pmc_cur_time_g;
++char    _pmc_time_string_pg[TIME_STRING_SIZE];
++
++#define LOG_PRINT(format, ...) {          \
++   _pmc_cur_time_g = time(NULL);          \
++   strftime(_pmc_time_string_pg,          \
++            TIME_STRING_SIZE,             \
++            "%a %b %d, %Y @ %H:%M:%S",    \
++            localtime(&_pmc_cur_time_g)); \
++   fprintf(_pmc_log_stream_pg,            \
++           "%s: " format,                 \
++           _pmc_time_string_pg,           \
++           ## __VA_ARGS__);               \
++}
++
++/* --------------------------------------------------------------------------
++ * Global variables for use in message composition
++ * -------------------------------------------------------------------------- */
++uint32_t  _msg_cur_length_g;
++uint32_t  _msg_new_length_g;
++uint8_t  *_msg_new_pg;
++uint8_t  *_msg_cur_pos_pg;
++
++/* --------------------------------------------------------------------------
++ * Extract a uint8_t
++ * -------------------------------------------------------------------------- */
++#define MSG_EXTRACT_UINT8(parm_p, val) {                                              \
++   if (*((_pmc_msg_type_t *)parm_p) != _pmc_field_uint8_e)                            \
++   {                                                                                  \
++      LOG_PRINT("Incorrect type for field. Expecting type %d (uint8_t) but got %d\n", \
++                _pmc_field_uint8_e, *((_pmc_msg_type_t *)parm_p));                    \
++      return EINVAL;                                                                  \
++   }                                                                                  \
++   parm_p += sizeof(_pmc_msg_field_type_t) + sizeof(_pmc_msg_field_len_t);            \
++   val = *((uint8_t *)parm_p);                                                        \
++   parm_p += sizeof(uint8_t);                                                         \
++}
++
++/* --------------------------------------------------------------------------
++ * Extract a uint16_t
++ * -------------------------------------------------------------------------- */
++#define MSG_EXTRACT_UINT16(parm_p, val) {                                              \
++   if (*((_pmc_msg_type_t *)parm_p) != _pmc_field_uint16_e)                            \
++   {                                                                                   \
++      LOG_PRINT("Incorrect type for field. Expecting type %d (uint16_t) but got %d\n", \
++                _pmc_field_uint16_e, *((_pmc_msg_type_t *)parm_p));                    \
++      return EINVAL;                                                                   \
++   }                                                                                   \
++   parm_p += sizeof(_pmc_msg_field_type_t) + sizeof(_pmc_msg_field_len_t);             \
++   val = *((uint16_t *)parm_p);                                                        \
++   parm_p += sizeof(uint16_t);                                                         \
++}
++
++/* --------------------------------------------------------------------------
++ * Extract a uint32_t
++ * -------------------------------------------------------------------------- */
++#define MSG_EXTRACT_UINT32(parm_p, val) {                                              \
++   if (*((_pmc_msg_type_t *)parm_p) != _pmc_field_uint32_e)                            \
++   {                                                                                   \
++      LOG_PRINT("Incorrect type for field. Expecting type %d (uint32_t) but got %d\n", \
++                _pmc_field_uint32_e, *((_pmc_msg_type_t *)parm_p));                    \
++      return EINVAL;                                                                   \
++   }                                                                                   \
++   parm_p += sizeof(_pmc_msg_field_type_t) + sizeof(_pmc_msg_field_len_t);             \
++   val = *((uint32_t *)parm_p);                                                        \
++   parm_p += sizeof(uint32_t);                                                         \
++}
++
++/* --------------------------------------------------------------------------
++ * Extract a uint64_t
++ * -------------------------------------------------------------------------- */
++#define MSG_EXTRACT_UINT64(parm_p, val) {                                              \
++   if (*((_pmc_msg_type_t *)parm_p) != _pmc_field_uint64_e)                            \
++   {                                                                                   \
++      LOG_PRINT("Incorrect type for field. Expecting type %d (uint64_t) but got %d\n", \
++                _pmc_field_uint64_e, *((_pmc_msg_type_t *)parm_p));                    \
++      return EINVAL;                                                                   \
++   }                                                                                   \
++   parm_p += sizeof(_pmc_msg_field_type_t) + sizeof(_pmc_msg_field_len_t);             \
++   val = *((uint64_t *)parm_p);                                                        \
++   parm_p += sizeof(uint64_t);                                                         \
++}
++
++/* --------------------------------------------------------------------------
++ * Extract a int8_t
++ * -------------------------------------------------------------------------- */
++#define MSG_EXTRACT_INT8(parm_p, val)   {                                            \
++   if (*((_pmc_msg_type_t *)parm_p) != _pmc_field_int8_e)                            \
++   {                                                                                 \
++      LOG_PRINT("Incorrect type for field. Expecting type %d (int8_t) but got %d\n", \
++                _pmc_field_int8_e, *((_pmc_msg_type_t *)parm_p));                    \
++      return EINVAL;                                                                 \
++   }                                                                                 \
++   parm_p += sizeof(_pmc_msg_field_type_t) + sizeof(_pmc_msg_field_len_t);           \
++   val = *((int8_t *)parm_p);                                                        \
++   parm_p += sizeof(int8_t);                                                         \
++}
++
++/* --------------------------------------------------------------------------
++ * Extract a int16_t
++ * -------------------------------------------------------------------------- */
++#define MSG_EXTRACT_INT16(parm_p, val)  {                                             \
++   if (*((_pmc_msg_type_t *)parm_p) != _pmc_field_int16_e)                            \
++   {                                                                                  \
++      LOG_PRINT("Incorrect type for field. Expecting type %d (int16_t) but got %d\n", \
++                _pmc_field_int16_e, *((_pmc_msg_type_t *)parm_p));                    \
++      return EINVAL;                                                                  \
++   }                                                                                  \
++   parm_p += sizeof(_pmc_msg_field_type_t) + sizeof(_pmc_msg_field_len_t);            \
++   val = *((int16_t *)parm_p);                                                        \
++   parm_p += sizeof(int16_t);                                                         \
++}
++
++/* --------------------------------------------------------------------------
++ * Extract a int32_t
++ * -------------------------------------------------------------------------- */
++#define MSG_EXTRACT_INT32(parm_p, val)  {                                             \
++   if (*((_pmc_msg_type_t *)parm_p) != _pmc_field_int32_e)                            \
++   {                                                                                  \
++      LOG_PRINT("Incorrect type for field. Expecting type %d (int32_t) but got %d\n", \
++                _pmc_field_int32_e, *((_pmc_msg_type_t *)parm_p));                    \
++      return EINVAL;                                                                  \
++   }                                                                                  \
++   parm_p += sizeof(_pmc_msg_field_type_t) + sizeof(_pmc_msg_field_len_t);            \
++   val = *((int32_t *)parm_p);                                                        \
++   parm_p += sizeof(int32_t);                                                         \
++}
++
++/* --------------------------------------------------------------------------
++ * Extract a int64_t
++ * -------------------------------------------------------------------------- */
++#define MSG_EXTRACT_INT64(parm_p, val)  {                                             \
++   if (*((_pmc_msg_type_t *)parm_p) != _pmc_field_int64_e)                            \
++   {                                                                                  \
++      LOG_PRINT("Incorrect type for field. Expecting type %d (int64_t) but got %d\n", \
++                _pmc_field_int64_e, *((_pmc_msg_type_t *)parm_p));                    \
++      return EINVAL;                                                                  \
++   }                                                                                  \
++   parm_p += sizeof(_pmc_msg_field_type_t) + sizeof(_pmc_msg_field_len_t);            \
++   val = *((int64_t *)parm_p);                                                        \
++   parm_p += sizeof(int64_t);                                                         \
++}
++
++/* --------------------------------------------------------------------------
++ * Extract a bool
++ * -------------------------------------------------------------------------- */
++#define MSG_EXTRACT_BOOL(parm_p, val)   {                                          \
++   if (*((_pmc_msg_type_t *)parm_p) != _pmc_field_bool_e)                          \
++   {                                                                               \
++      LOG_PRINT("Incorrect type for field. Expecting type %d (bool) but got %d\n", \
++                _pmc_field_bool_e, *((_pmc_msg_type_t *)parm_p));                  \
++      return EINVAL;                                                               \
++   }                                                                               \
++   parm_p += sizeof(_pmc_msg_field_type_t) + sizeof(_pmc_msg_field_len_t);         \
++   val = *((bool *)parm_p);                                                        \
++   parm_p += sizeof(bool);                                                         \
++}
++
++/* --------------------------------------------------------------------------
++ * Extract a char
++ * -------------------------------------------------------------------------- */
++#define MSG_EXTRACT_CHAR(parm_p, val)   {                                          \
++   if (*((_pmc_msg_type_t *)parm_p) != _pmc_field_char_e)                          \
++   {                                                                               \
++      LOG_PRINT("Incorrect type for field. Expecting type %d (char) but got %d\n", \
++                _pmc_field_char_e, *((_pmc_msg_type_t *)parm_p));                  \
++      return EINVAL;                                                               \
++   }                                                                               \
++   parm_p += sizeof(_pmc_msg_field_type_t) + sizeof(_pmc_msg_field_len_t);         \
++   val = *((char *)parm_p);                                                        \
++   parm_p += sizeof(char);                                                         \
++}
++
++/* --------------------------------------------------------------------------
++ * Extract a string
++ * -------------------------------------------------------------------------- */
++#define MSG_EXTRACT_STR(parm_p, val_p)  {                                            \
++   if (*((_pmc_msg_type_t *)parm_p) != _pmc_field_str_e)                             \
++   {                                                                                 \
++      LOG_PRINT("Incorrect type for field. Expecting type %d (string) but got %d\n", \
++                _pmc_field_str_e, *((_pmc_msg_type_t *)parm_p));                     \
++      return EINVAL;                                                                 \
++   }                                                                                 \
++   parm_p += sizeof(_pmc_msg_field_type_t) + sizeof(_pmc_msg_field_len_t);           \
++   val_p = (char *)parm_p;                                                           \
++   parm_p -= sizeof(_pmc_msg_field_len_t);                                           \
++   parm_p += sizeof(_pmc_msg_field_len_t) + *((_pmc_msg_field_len_t *)parm_p);       \
++}
++
++/* --------------------------------------------------------------------------
++ * Initialize a message for sending to the server or back to the client
++ * -------------------------------------------------------------------------- */
++#define MSG_INIT(msg_p, type) {                                                    \
++   msg_p = (uint8_t *)calloc(sizeof(_pmc_msg_type_t) + sizeof(_pmc_msg_len_t), 1); \
++   if (msg_p == NULL)                                                              \
++   {                                                                               \
++      LOG_PRINT("Unable to allocate memory for message: %s\n", strerror(errno));   \
++      return EINVAL;                                                               \
++   }                                                                               \
++   *((_pmc_msg_type_t *)msg_p) = type;                                             \
++   *((_pmc_msg_len_t *)(msg_p + sizeof(_pmc_msg_type_t))) = 0;                     \
++}
++
++/* --------------------------------------------------------------------------
++ * Free a message created with MSG_INIT
++ * -------------------------------------------------------------------------- */
++#define MSG_FREE(msg_p) { \
++   free(msg_p);           \
++   msg_p = NULL;          \
++}
++
++/* --------------------------------------------------------------------------
++ * Base macro for adding integer/char fields
++ * -------------------------------------------------------------------------- */
++#define MSG_ADD_BASE(msg_p, val, type, enum_type) {                              \
++   _msg_cur_length_g = sizeof(_pmc_msg_type_t) +                                 \
++                       sizeof(_pmc_msg_len_t)  +                                 \
++                       *((_pmc_msg_len_t *)(msg_p + sizeof(_pmc_msg_type_t)));   \
++   _msg_new_length_g = _msg_cur_length_g            +                            \
++                       sizeof(_pmc_msg_field_type_t) +                           \
++                       sizeof(_pmc_msg_field_len_t)  +                           \
++                       sizeof(type);                                             \
++   _msg_new_pg = (uint8_t *)calloc(_msg_new_length_g, 1);                        \
++   if (_msg_new_pg == NULL)                                                      \
++   {                                                                             \
++      LOG_PRINT("Unable to allocate memory for message: %s\n", strerror(errno)); \
++      return EINVAL;                                                             \
++   }                                                                             \
++   memcpy(_msg_new_pg, msg_p, _msg_cur_length_g);                                \
++   _msg_cur_pos_pg = _msg_new_pg + _msg_cur_length_g;                            \
++   *((_pmc_msg_field_type_t *)_msg_cur_pos_pg) = enum_type;                      \
++   _msg_cur_pos_pg += sizeof(_pmc_msg_field_type_t);                             \
++   *((_pmc_msg_field_len_t *)_msg_cur_pos_pg) = sizeof(type);                    \
++   _msg_cur_pos_pg += sizeof(_pmc_msg_field_len_t);                              \
++   *((type *)_msg_cur_pos_pg) = val;                                             \
++   free(msg_p);                                                                  \
++   msg_p = _msg_new_pg;                                                          \
++   *((_pmc_msg_len_t *)(msg_p + sizeof(_pmc_msg_field_type_t))) +=               \
++      sizeof(_pmc_msg_field_type_t) +                                            \
++      sizeof(_pmc_msg_field_len_t)  +                                            \
++      sizeof(type);                                                              \
++}
++
++/* --------------------------------------------------------------------------
++ * Add an int8_t field to the message
++ * -------------------------------------------------------------------------- */
++#define MSG_ADD_INT8_FIELD(msg_p, val) \
++    MSG_ADD_BASE(msg_p, val, int8_t, _pmc_field_int8_e)
++
++/* --------------------------------------------------------------------------
++ * Add an int16_t field to the message
++ * -------------------------------------------------------------------------- */
++#define MSG_ADD_INT16_FIELD(msg_p, val) \
++    MSG_ADD_BASE(msg_p, val, int16_t, _pmc_field_int16_e)
++
++/* --------------------------------------------------------------------------
++ * Add an int32_t field to the message
++ * -------------------------------------------------------------------------- */
++#define MSG_ADD_INT32_FIELD(msg_p, val) \
++    MSG_ADD_BASE(msg_p, val, int32_t, _pmc_field_int32_e)
++
++/* --------------------------------------------------------------------------
++ * Add an int64_t field to the message
++ * -------------------------------------------------------------------------- */
++#define MSG_ADD_INT64_FIELD(msg_p, val) \
++    MSG_ADD_BASE(msg_p, val, int64_t, _pmc_field_int64_e)
++
++/* --------------------------------------------------------------------------
++ * Add a uint8_t field to the message
++ * -------------------------------------------------------------------------- */
++#define MSG_ADD_UINT8_FIELD(msg_p, val) \
++    MSG_ADD_BASE(msg_p, val, uint8_t, _pmc_field_uint8_e)
++
++/* --------------------------------------------------------------------------
++ * Add a uint16_t field to the message
++ * -------------------------------------------------------------------------- */
++#define MSG_ADD_UINT16_FIELD(msg_p, val) \
++    MSG_ADD_BASE(msg_p, val, uint16_t, _pmc_field_uint16_e)
++
++/* --------------------------------------------------------------------------
++ * Add a uint32_t field to the message
++ * -------------------------------------------------------------------------- */
++#define MSG_ADD_UINT32_FIELD(msg_p, val) \
++    MSG_ADD_BASE(msg_p, val, uint32_t, _pmc_field_uint32_e)
++
++/* --------------------------------------------------------------------------
++ * Add a uint64_t field to the message
++ * -------------------------------------------------------------------------- */
++#define MSG_ADD_UINT64_FIELD(msg_p, val) \
++    MSG_ADD_BASE(msg_p, val, uint64_t, _pmc_field_uint64_e)
++
++/* --------------------------------------------------------------------------
++ * Add a bool field to the message
++ * -------------------------------------------------------------------------- */
++#define MSG_ADD_BOOL_FIELD(msg_p, val) \
++    MSG_ADD_BASE(msg_p, val, bool, _pmc_field_bool_e)
++
++/* --------------------------------------------------------------------------
++ * Add a char field to the message
++ * -------------------------------------------------------------------------- */
++#define MSG_ADD_CHAR_FIELD(msg_p, val) \
++    MSG_ADD_BASE(msg_p, val, char, _pmc_field_char_e)
++
++/* --------------------------------------------------------------------------
++ * Add a string field to the message
++ * -------------------------------------------------------------------------- */
++#define MSG_ADD_STR_FIELD(msg_p, val_p) {                                        \
++   _msg_cur_length_g = sizeof(_pmc_msg_type_t) +                                 \
++                       sizeof(_pmc_msg_len_t)  +                                 \
++                       *((_pmc_msg_len_t *)(msg_p + sizeof(_pmc_msg_type_t)));   \
++   _msg_new_length_g = _msg_cur_length_g            +                            \
++                       sizeof(_pmc_msg_field_type_t) +                           \
++                       sizeof(_pmc_msg_len_t)        +                           \
++                       strlen(val_p) + 1;                                        \
++   _msg_new_pg = (uint8_t *)calloc(_msg_new_length_g, 1);                        \
++   if (_msg_new_pg == NULL)                                                      \
++   {                                                                             \
++      LOG_PRINT("Unable to allocate memory for message: %s\n", strerror(errno)); \
++      return EINVAL;                                                             \
++   }                                                                             \
++   memcpy(_msg_new_pg, msg_p, _msg_cur_length_g);                                \
++   _msg_cur_pos_pg = _msg_new_pg + _msg_cur_length_g;                            \
++   *((_pmc_msg_field_type_t *)_msg_cur_pos_pg) = _pmc_field_str_e;               \
++   _msg_cur_pos_pg += sizeof(_pmc_msg_field_type_t);                             \
++   *((_pmc_msg_field_len_t *)_msg_cur_pos_pg) = strlen(val_p) + 1;               \
++   _msg_cur_pos_pg += sizeof(_pmc_msg_field_len_t);                              \
++   memcpy(_msg_cur_pos_pg, val_p, strlen(val_p));                                \
++   free(msg_p);                                                                  \
++   msg_p = _msg_new_pg;                                                          \
++   *((_pmc_msg_len_t *)(msg_p + sizeof(_pmc_msg_field_type_t))) +=               \
++      sizeof(_pmc_msg_field_type_t) +                                            \
++      sizeof(_pmc_msg_field_len_t)  +                                            \
++      strlen(val_p) + 1;                                                         \
++}
++   
++/* --------------------------------------------------------------------------
++ * Get the total message size
++ * -------------------------------------------------------------------------- */
++#define MSG_SIZE(msg_p) sizeof(_pmc_msg_type_t) + \
++                        sizeof(_pmc_msg_len_t)  + \
++                        *((_pmc_msg_len_t *)(msg_p + sizeof(_pmc_msg_field_type_t)))
++   
++
++/* Message types */
++typedef enum
++{
++//   _pmc_ping_e,
++//   _pmc_ping_response_e,
++
++//   _pmc_dummy_e,
++//   _pmc_dummy_response_e,
++
++   _pmc_add_bin_expr_file_e,
++   _pmc_add_bin_expr_file_response_e,
++
++   _pmc_add_bin_rule_file_e,
++   _pmc_add_bin_rule_file_response_e,
++
++   _pmc_del_bin_expr_file_e,
++   _pmc_del_bin_expr_file_response_e,
++
++   _pmc_del_bin_rule_file_e,
++   _pmc_del_bin_rule_file_response_e,
++
++   _pmc_del_all_expr_e,
++   _pmc_del_all_expr_response_e,
++
++   _pmc_del_all_rule_e,
++   _pmc_del_all_rule_response_e,
++
++   _pmc_del_all_e,
++   _pmc_del_all_response_e,
++
++   _pmc_del_expr_name_e,
++   _pmc_del_expr_name_response_e,
++
++   _pmc_del_expr_set_e,
++   _pmc_del_expr_set_response_e,
++
++   _pmc_del_rule_name_e,
++   _pmc_del_rule_name_response_e,
++
++   _pmc_commit_e,
++   _pmc_commit_response_e,
++
++   _pmc_query_expr_name_e,
++   _pmc_query_expr_name_response_e,
++
++   _pmc_query_expr_set_e,
++   _pmc_query_expr_set_response_e,
++
++   _pmc_query_expr_first_e,
++   _pmc_query_expr_first_response_e,
++
++   _pmc_query_expr_next_e,
++   _pmc_query_expr_next_response_e,
++
++   _pmc_query_rule_name_e,
++   _pmc_query_rule_name_response_e,
++
++   _pmc_query_rule_first_e,
++   _pmc_query_rule_first_response_e,
++
++   _pmc_query_rule_next_e,
++   _pmc_query_rule_next_response_e,
++
++   _pmc_set_var_trig_e,
++   _pmc_set_var_trig_response_e,
++
++   _pmc_analysis_e,
++   _pmc_analysis_response_e,
++
++   _pmc_stats_e,
++   _pmc_stats_response_e,
++
++   _pmc_stats_reset_e,
++   _pmc_stats_reset_response_e,
++
++   /* Do NOT remove this! It must remain the last entry. */
++   _pmc_cmd_max_e,
++
++  /* Nothing can go here */
++
++} _pmc_msg_type_t;
++
++/* Message field types */
++typedef enum
++{
++   _pmc_field_char_e = 0,
++   _pmc_field_str_e,
++   _pmc_field_uint8_e,
++   _pmc_field_uint16_e,
++   _pmc_field_uint32_e,
++   _pmc_field_uint64_e,
++   _pmc_field_int8_e,
++   _pmc_field_int16_e,
++   _pmc_field_int32_e,
++   _pmc_field_int64_e,
++   _pmc_field_bool_e,
++} _pmc_msg_field_type_t;
++
++/* Message length */
++typedef uint32_t _pmc_msg_len_t;
++
++/* Message length */
++typedef uint32_t _pmc_msg_field_len_t;
++
++/* Message field */
++typedef struct _pmc_msg_field
++{
++   _pmc_msg_field_type_t  type;
++   _pmc_msg_field_len_t   len;
++   uint8_t              *value;
++} _pmc_msg_field_t;
++
++/* Message format */
++typedef struct _pmc_msg_fmt
++{
++   _pmc_msg_type_t   type;
++   _pmc_msg_len_t    len;   // Length of all fields in bytes
++   _pmc_msg_field_t *fields_p;
++} _pmc_msg_fmt_t;
++
++#endif /* __PMC_PRIVATE_H__ */
+diff --git a/pmConfiguration/pmcapi.c b/pmConfiguration/pmcapi.c
+new file mode 100644
+index 0000000..14360d6
+--- /dev/null
++++ b/pmConfiguration/pmcapi.c
+@@ -0,0 +1,1810 @@
++/************************< BEGIN COPYRIGHT >************************
++ *  
++ *   Copyright 2009, Freescale Semiconductor, Inc.  All Rights Reserved.
++ *  
++ *    NOTICE: The information contained in this file is proprietary 
++ *    to Freescale Semiconductor and is being made available to 
++ *    Freescale's customers under a specific license agreement. 
++ *    Use or disclosure of this information is permissible only 
++ *    under the terms of the license agreement. 
++ *  
++ * 
++ ************************< END COPYRIGHT >***************************/
++/* ========================================================================== *
++ * Pattern Matcher Configuration API
++ *
++ * File Name: pmcapi.c
++ * Author   : Vince Hendricks
++ * ========================================================================== */
++
++#include <stdlib.h>
++#include <stdio.h>
++#include <errno.h>
++#include <string.h>
++#include <sys/socket.h>
++#include <linux/un.h>
++#include <unistd.h>
++
++#include "pmcapi.h"
++#include "pmc_private.h"
++
++#define PMCD_CONNECT {                                                        \
++   sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);                                 \
++   if (sock_fd < 0)                                                           \
++   {                                                                          \
++      fprintf(stderr, "Failed to create socket: %s\n", strerror(errno));      \
++      return pmc_connect_fail_e;                                              \
++   }                                                                          \
++   server_address.sun_family = AF_UNIX;                                       \
++   strncpy(server_address.sun_path, SERVER_SOCK_FILE_PATH, UNIX_PATH_MAX);    \
++   len = strlen(server_address.sun_path) + sizeof(server_address.sun_family); \
++   if (connect(sock_fd, (struct sockaddr *)&server_address, len) != 0)        \
++   {                                                                          \
++      fprintf(stderr, "Failed to connect to pmcd: %s\n", strerror(errno));    \
++      return pmc_connect_fail_e;                                              \
++   }                                                                          \
++}
++
++#define PMCD_SEND {                                                     \
++   if(send(sock_fd, msg_p, MSG_SIZE(msg_p), 0) == -1)                   \
++   {                                                                    \
++      fprintf(stderr, "Failed to send to pmcd: %s\n", strerror(errno)); \
++      MSG_FREE(msg_p);                                                  \
++      return pmc_send_fail_e;                                           \
++   }                                                                    \
++}
++
++#define PMCD_CLOSE close(sock_fd);
++
++#define _PMCAPI_BUFFER_SIZE_INCREMENT 1000
++
++#define FREE(ptr) {free(ptr); ptr = NULL;}
++
++/*
++ * Receive response from daemon.
++ */
++static int _pmcapi_recv_response(int       sock_fd,
++                                 uint8_t **buffer_p)
++{
++   int32_t         num_bytes   = 0;
++   uint32_t        total_bytes = 0;
++   uint32_t        type;
++   uint32_t        length;
++
++   /* First extract the header */
++   num_bytes = recv(sock_fd,
++                    &type,
++                    sizeof(type),
++                    0);
++
++   if (num_bytes != sizeof(type))
++   {
++      fprintf(stderr,
++              "Failed to receive header type from daemon: %s\n",
++              strerror(errno));
++      return errno;
++   }
++
++   num_bytes = recv(sock_fd,
++                    &length,
++                    sizeof(length),
++                    0);
++
++   if (num_bytes != sizeof(length))
++   {
++      fprintf(stderr,
++              "Failed to receive header length from daemon: %s\n",
++              strerror(errno));
++      return errno;
++   }
++
++   *buffer_p = (uint8_t *)calloc(length, 1);
++
++   if(*buffer_p == NULL)
++   {
++      fprintf(stderr,
++              "Failed to allocate memory for receive buffer: %s\n",
++              strerror(errno));
++      return errno;
++   }
++
++   /* Read in the rest of the message */
++   while (total_bytes < length)
++   {
++      num_bytes = recv(sock_fd,
++                       *buffer_p + total_bytes,
++                       length - total_bytes,
++                       0);
++
++      if (num_bytes <= 0)
++      {
++         fprintf(stderr,
++                 "Failed to receive header length from daemon: %s\n",
++                 strerror(errno));
++         return errno;
++      }
++
++      total_bytes += num_bytes;
++   }
++
++   return 0;
++}
++
++/*
++ * Add a precompiled binary regular expression file to the database.
++ *
++ * Parameters:
++ *    filename_p  - Full path name of the compiled binary.
++ *    auto_commit - Flag to indicate if you wish to auto commit the file.
++ *    info_msg_p  - Error or other information.
++ */
++pmc_status_t pmc_add_expr_file(char  *filename_p,
++                               bool   auto_commit,
++                               char **info_msg_p)
++{
++   int                 sock_fd;
++   int                 len;
++   int                 result;
++   uint8_t            *msg_p;
++   uint8_t            *recv_buffer_p;
++   uint8_t            *buffer_pos_p;
++   struct sockaddr_un  server_address;
++   uint32_t            status;
++   char               *info_str_p;
++
++   PMCD_CONNECT;
++
++   MSG_INIT          (msg_p, _pmc_add_bin_expr_file_e);
++   MSG_ADD_STR_FIELD (msg_p, filename_p);
++   MSG_ADD_BOOL_FIELD(msg_p, auto_commit);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Delete the expressions from a precompiled binary regular expression file
++ * from the database.
++ *
++ * Parameters:
++ *    filename_p  - Full path name of the compiled binary.
++ *    auto_commit - Flag to indicate if you wish to auto commit the file.
++ *    info_msg_p  - Error or other information.
++ */
++pmc_status_t pmc_del_expr_file(char  *filename_p,
++                               bool   auto_commit,
++                               char **info_msg_p)
++{
++   int                 sock_fd;
++   int                 len;
++   int                 result;
++   uint8_t            *msg_p;
++   uint8_t            *recv_buffer_p;
++   uint8_t            *buffer_pos_p;
++   struct sockaddr_un  server_address;
++   uint32_t            status;
++   char               *info_str_p;
++
++   PMCD_CONNECT;
++
++   MSG_INIT          (msg_p, _pmc_del_bin_expr_file_e);
++   MSG_ADD_STR_FIELD (msg_p, filename_p);
++   MSG_ADD_BOOL_FIELD(msg_p, auto_commit);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Add a precompiled binary stateful rule file to the database.
++ *
++ * Parameters:
++ *    filename_p  - Full path name of the compiled binary.
++ *    auto_commit - Flag to indicate if you wish to auto commit the file.
++ *    info_msg_p  - Error or other information.
++ */
++pmc_status_t pmc_add_rule_file(char  *filename_p,
++                               bool   auto_commit,
++                               char **info_msg_p)
++{
++   int                 sock_fd;
++   int                 len;
++   int                 result;
++   uint8_t            *msg_p;
++   uint8_t            *recv_buffer_p;
++   uint8_t            *buffer_pos_p;
++   struct sockaddr_un  server_address;
++   uint32_t            status;
++   char               *info_str_p;
++
++   PMCD_CONNECT;
++
++   MSG_INIT          (msg_p, _pmc_add_bin_rule_file_e);
++   MSG_ADD_STR_FIELD (msg_p, filename_p);
++   MSG_ADD_BOOL_FIELD(msg_p, auto_commit);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Delete rules from a precompiled binary stateful rule file
++ * from the database.
++ *
++ * Parameters:
++ *    filename_p  - Full path name of the compiled binary.
++ *    auto_commit - Flag to indicate if you wish to auto commit the file.
++ *    info_msg_p  - Error or other information.
++ */
++pmc_status_t pmc_del_rule_file(char  *filename_p,
++                               bool   auto_commit,
++                               char **info_msg_p)
++{
++   int                 sock_fd;
++   int                 len;
++   int                 result;
++   uint8_t            *msg_p;
++   uint8_t            *recv_buffer_p;
++   uint8_t            *buffer_pos_p;
++   struct sockaddr_un  server_address;
++   uint32_t            status;
++   char               *info_str_p;
++
++   PMCD_CONNECT;
++
++   MSG_INIT          (msg_p, _pmc_del_bin_rule_file_e);
++   MSG_ADD_STR_FIELD (msg_p, filename_p);
++   MSG_ADD_BOOL_FIELD(msg_p, auto_commit);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Delete all regular expressions from the database.
++ *
++ * Parameters:
++ *    auto_commit - Flag to indicate if you wish to auto commit.
++ *
++ *    info_msg    - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_all_expr(bool   auto_commit,
++                              char **info_msg_p)
++{
++   int                 sock_fd;
++   int                 len;
++   int                 result;
++   uint8_t            *msg_p;
++   uint8_t            *recv_buffer_p;
++   uint8_t            *buffer_pos_p;
++   struct sockaddr_un  server_address;
++   uint32_t            status;
++   char               *info_str_p;
++
++   PMCD_CONNECT;
++
++   MSG_INIT          (msg_p, _pmc_del_all_expr_e);
++   MSG_ADD_BOOL_FIELD(msg_p, auto_commit);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Delete all stateful rules from the database.
++ *
++ * Parameters:
++ *    auto_commit - Flag to indicate if you wish to auto commit.
++ *
++ *    info_msg    - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_all_rule(bool   auto_commit,
++                              char **info_msg_p)
++{
++   int                 sock_fd;
++   int                 len;
++   int                 result;
++   uint8_t            *msg_p;
++   uint8_t            *recv_buffer_p;
++   uint8_t            *buffer_pos_p;
++   struct sockaddr_un  server_address;
++   uint32_t            status;
++   char               *info_str_p;
++
++   PMCD_CONNECT;
++
++   MSG_INIT          (msg_p, _pmc_del_all_rule_e);
++   MSG_ADD_BOOL_FIELD(msg_p, auto_commit);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Delete all stateful rules and regular expressions from the database.
++ *
++ * Parameters:
++ *    auto_commit - Flag to indicate if you wish to auto commit.
++ *
++ *    info_msg    - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_all(bool   auto_commit,
++                         char **info_msg_p)
++{
++   int                 sock_fd;
++   int                 len;
++   int                 result;
++   uint8_t            *msg_p;
++   uint8_t            *recv_buffer_p;
++   uint8_t            *buffer_pos_p;
++   struct sockaddr_un  server_address;
++   uint32_t            status;
++   char               *info_str_p;
++
++   PMCD_CONNECT;
++
++   MSG_INIT          (msg_p, _pmc_del_all_e);
++   MSG_ADD_BOOL_FIELD(msg_p, auto_commit);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Delete a regular expression with a given name from the database.
++ *
++ * Parameters:
++ *    name_p      - Expression name.
++ *
++ *    auto_commit - Flag to indicate if you wish to auto commit.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_expr_name(char  *name_p,
++                               bool   auto_commit,
++                               char **info_msg_p)
++{
++   int                  sock_fd;
++   int                  len;
++   int                  result;
++   uint8_t             *msg_p;
++   uint8_t             *recv_buffer_p;
++   uint8_t             *buffer_pos_p;
++   struct sockaddr_un   server_address;
++   uint32_t             status;
++   char                *info_str_p;
++
++   PMCD_CONNECT;
++
++   MSG_INIT          (msg_p, _pmc_del_expr_name_e);
++   MSG_ADD_STR_FIELD (msg_p, name_p);
++   MSG_ADD_BOOL_FIELD(msg_p, auto_commit);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Delete a stateful rule with a given name from the database.
++ *
++ * Parameters:
++ *    name_p      - Rule name.
++ *
++ *    auto_commit - Flag to indicate if you wish to auto commit.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_rule_name(char  *name_p,
++                               bool   auto_commit,
++                               char **info_msg_p)
++{
++   int                   sock_fd;
++   int                   len;
++   int                   result;
++   uint8_t              *msg_p;
++   uint8_t              *recv_buffer_p;
++   uint8_t              *buffer_pos_p;
++   struct sockaddr_un    server_address;
++   uint32_t              status;
++   char                 *info_str_p;
++ 
++   PMCD_CONNECT;
++
++   MSG_INIT          (msg_p, _pmc_del_rule_name_e);
++   MSG_ADD_STR_FIELD (msg_p, name_p);
++   MSG_ADD_BOOL_FIELD(msg_p, auto_commit);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Commit the database.
++ *
++ * Parameters:
++ *    info_msg_p - Error or other information.
++ */
++pmc_status_t pmc_commit(char **info_msg_p)
++{
++   int                 sock_fd;
++   int                 len;
++   int                 result;
++   uint8_t            *msg_p;
++   uint8_t            *recv_buffer_p;
++   uint8_t            *buffer_pos_p;
++   struct sockaddr_un  server_address;
++   uint32_t            status;
++   char               *info_str_p;
++
++   PMCD_CONNECT;
++
++   MSG_INIT (msg_p, _pmc_commit_e);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Delete a regular expression with a given set and subset from the database.
++ *
++ * Parameters:
++ *    set         - Set number.
++ *
++ *    subset      - Subset mask.
++ *
++ *    auto_commit - Flag to indicate if you wish to auto commit.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_expr_set(uint8_t    set,
++                              uint16_t   subset,
++                              bool       auto_commit,
++                              char     **info_msg_p)
++{
++   int                   sock_fd;
++   int                   len;
++   int                   result;
++   uint8_t              *msg_p;
++   uint8_t              *recv_buffer_p;
++   uint8_t              *buffer_pos_p;
++   struct sockaddr_un    server_address;
++   uint32_t              status;
++   char                 *info_str_p;
++ 
++   PMCD_CONNECT;
++
++   MSG_INIT            (msg_p, _pmc_del_expr_set_e);
++   MSG_ADD_UINT8_FIELD (msg_p, set);
++   MSG_ADD_UINT16_FIELD(msg_p, subset);
++   MSG_ADD_BOOL_FIELD  (msg_p, auto_commit);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Query a regular expression with a given name from the database.
++ *
++ * Parameters:
++ *    name_p      - Expression name.
++ *
++ *    expr_info_p - Expression object pointer.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_expr_name(char        *name_p,
++                                 pmc_expr_t **expr_info_p,
++                                 char       **info_msg_p)
++{
++   int                   sock_fd;
++   int                   len;
++   int                   result;
++   uint8_t              *msg_p;
++   uint8_t              *recv_buffer_p;
++   uint8_t              *buffer_pos_p;
++   struct sockaddr_un    server_address;
++   uint32_t              status;
++   char                 *info_str_p;
++   char                 *expr_str_p;
++   char                 *opt_str_p;
++   uint32_t              db_index;
++ 
++   PMCD_CONNECT;
++
++   MSG_INIT          (msg_p, _pmc_query_expr_name_e);
++   MSG_ADD_STR_FIELD (msg_p, name_p);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   /* Expression fields */
++   if (status == pmc_ok_e)
++   {
++      MSG_EXTRACT_STR   (buffer_pos_p, expr_str_p);
++      MSG_EXTRACT_STR   (buffer_pos_p, opt_str_p);
++      MSG_EXTRACT_UINT32(buffer_pos_p, db_index);
++
++      // User must use pmc_free_expr function to free this memory.
++      *expr_info_p = (pmc_expr_t *)calloc(sizeof(pmc_expr_t), 1);
++
++      if (*expr_info_p == NULL)
++      {
++         fprintf(stderr,
++                 "Failed to allocate memory for expression information.\n");
++         PMCD_CLOSE;
++         return pmc_no_memory_e;
++      }
++
++      (*expr_info_p)->name_p     = strdup(name_p);
++      (*expr_info_p)->expr_str_p = strdup(expr_str_p);
++      (*expr_info_p)->opt_str_p  = strdup(opt_str_p);
++      (*expr_info_p)->db_index   = db_index;
++      (*expr_info_p)->next_p     = NULL;
++   }
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Query regular expressions with a given set/subset from the database.
++ *
++ * Parameters:
++ *    set         - Set number.
++ *
++ *    subset      - Subset mask.
++ *
++ *    expr_info_p - Expression object pointer to be filled in.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_expr_set(uint8_t      set,
++                                uint16_t     subset,
++                                pmc_expr_t **expr_info_p,
++                                char       **info_msg_p)
++{
++   int                   sock_fd;
++   int                   len;
++   int                   result;
++   uint8_t              *msg_p;
++   uint8_t              *recv_buffer_p;
++   uint8_t              *buffer_pos_p;
++   struct sockaddr_un    server_address;
++   uint32_t              status;
++   char                 *info_str_p;
++   char                 *name_p;
++   char                 *expr_str_p;
++   char                 *opt_str_p;
++   uint32_t              db_index;
++   uint32_t              count;
++   uint32_t              num_exprs;
++   pmc_expr_t           *cur_expr_p  = NULL;
++   pmc_expr_t           *prev_expr_p = NULL;
++ 
++   PMCD_CONNECT;
++
++   MSG_INIT            (msg_p, _pmc_query_expr_set_e);
++   MSG_ADD_UINT8_FIELD (msg_p, set);
++   MSG_ADD_UINT16_FIELD(msg_p, subset);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   /* Expression fields */
++   if (status == pmc_ok_e)
++   {
++      /* Number of expressions */
++      MSG_EXTRACT_UINT32(buffer_pos_p, num_exprs);
++      if (num_exprs > 0)
++      {
++         prev_expr_p = NULL;
++
++         for (count = 0; count < num_exprs; count++)
++         {
++            // User must use pmc_free_expr function to free this memory.
++            cur_expr_p = (pmc_expr_t *)calloc(sizeof(pmc_expr_t), 1);
++   
++            if (cur_expr_p == NULL)
++            {
++               fprintf(stderr,
++                       "Failed to allocate memory for expression information.\n");
++               PMCD_CLOSE;
++               return pmc_no_memory_e;
++            }
++
++            if (count == 0)
++            {
++               *expr_info_p = cur_expr_p;
++            }
++
++            /* Expr */
++            MSG_EXTRACT_STR   (buffer_pos_p, name_p);
++            MSG_EXTRACT_STR   (buffer_pos_p, expr_str_p);
++            MSG_EXTRACT_STR   (buffer_pos_p, opt_str_p);
++            MSG_EXTRACT_UINT32(buffer_pos_p, db_index);
++      
++            cur_expr_p->name_p     = strdup(name_p);
++            cur_expr_p->expr_str_p = strdup(expr_str_p);
++            cur_expr_p->opt_str_p  = strdup(opt_str_p);
++            cur_expr_p->db_index   = db_index;
++            cur_expr_p->next_p     = NULL; /* end of list */
++
++            if (prev_expr_p != NULL)
++            {
++               /* Add new expr to list */
++               prev_expr_p->next_p = cur_expr_p;
++            }
++
++            prev_expr_p = cur_expr_p;
++         }
++      }
++   }
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++
++/*
++ * Query the first regular expression from the database.
++ *
++ * Parameters:
++ *    expr_info_p - Expression object pointer to be filled in.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_expr_first(pmc_expr_t **expr_info_p,
++                                  char       **info_msg_p)
++{
++   int                   sock_fd;
++   int                   len;
++   int                   result;
++   uint8_t              *msg_p;
++   uint8_t              *recv_buffer_p;
++   uint8_t              *buffer_pos_p;
++   struct sockaddr_un    server_address;
++   uint32_t              status;
++   char                 *info_str_p;
++   char                 *name_p;
++   char                 *expr_str_p;
++   char                 *opt_str_p;
++   uint32_t              db_index;
++ 
++   PMCD_CONNECT;
++
++   MSG_INIT          (msg_p, _pmc_query_expr_first_e);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   /* Expression fields */
++   if (status == pmc_ok_e)
++   {
++      MSG_EXTRACT_STR   (buffer_pos_p, name_p);
++      MSG_EXTRACT_STR   (buffer_pos_p, expr_str_p);
++      MSG_EXTRACT_STR   (buffer_pos_p, opt_str_p);
++      MSG_EXTRACT_UINT32(buffer_pos_p, db_index);
++
++      // User must use pmc_free_expr function to free this memory.
++      *expr_info_p = (pmc_expr_t *)calloc(sizeof(pmc_expr_t), 1);
++
++      if (*expr_info_p == NULL)
++      {
++         fprintf(stderr,
++                 "Failed to allocate memory for expression information.\n");
++         PMCD_CLOSE;
++         return pmc_no_memory_e;
++      }
++
++      (*expr_info_p)->name_p     = strdup(name_p);
++      (*expr_info_p)->expr_str_p = strdup(expr_str_p);
++      (*expr_info_p)->opt_str_p  = strdup(opt_str_p);
++      (*expr_info_p)->db_index   = db_index;
++   }
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Query the next regular expression from the database.
++ *
++ * Parameters:
++ *    index       - Index of the current expression object.
++ *
++ *    expr_info_p - Expression object pointer to be filled in.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_expr_next(uint32_t     exp_index,
++                                 pmc_expr_t **expr_info_p,
++                                 char       **info_msg_p)
++{
++   int                   sock_fd;
++   int                   len;
++   int                   result;
++   uint8_t              *msg_p;
++   uint8_t              *recv_buffer_p;
++   uint8_t              *buffer_pos_p;
++   struct sockaddr_un    server_address;
++   uint32_t              status;
++   char                 *info_str_p;
++   char                 *name_p;
++   char                 *expr_str_p;
++   char                 *opt_str_p;
++   uint32_t              db_index;
++ 
++   PMCD_CONNECT;
++
++   MSG_INIT            (msg_p, _pmc_query_expr_next_e);
++   MSG_ADD_UINT32_FIELD(msg_p, exp_index);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   /* Expression fields */
++   if (status == pmc_ok_e)
++   {
++      MSG_EXTRACT_STR   (buffer_pos_p, name_p);
++      MSG_EXTRACT_STR   (buffer_pos_p, expr_str_p);
++      MSG_EXTRACT_STR   (buffer_pos_p, opt_str_p);
++      MSG_EXTRACT_UINT32(buffer_pos_p, db_index);
++
++      // User must use pmc_free_expr function to free this memory.
++      *expr_info_p = (pmc_expr_t *)calloc(sizeof(pmc_expr_t), 1);
++
++      if (*expr_info_p == NULL)
++      {
++         fprintf(stderr,
++                 "Failed to allocate memory for expression information.\n");
++         PMCD_CLOSE;
++         return pmc_no_memory_e;
++      }
++
++      (*expr_info_p)->name_p     = strdup(name_p);
++      (*expr_info_p)->expr_str_p = strdup(expr_str_p);
++      (*expr_info_p)->opt_str_p  = strdup(opt_str_p);
++      (*expr_info_p)->db_index   = db_index;
++   }
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Query a rule with a given name from the database.
++ *
++ * Parameters:
++ *    name_p      - Rule name.
++ *
++ *    rule_info_p - Rule object pointer.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_rule_name(char        *name_p,
++                                 pmc_rule_t **rule_info_p,
++                                 char       **info_msg_p)
++{
++   int                   sock_fd;
++   int                   len;
++   int                   result;
++   uint32_t              count;
++   uint8_t              *msg_p;
++   uint8_t              *recv_buffer_p;
++   uint8_t              *buffer_pos_p;
++   struct sockaddr_un    server_address;
++   uint32_t              status;
++   char                 *info_str_p;
++   char                 *tmp_str_p;
++
++   uint32_t              num_reactions;
++   char                **expr_names_p;
++   uint32_t              db_index;
++ 
++   PMCD_CONNECT;
++
++   MSG_INIT          (msg_p, _pmc_query_rule_name_e);
++   MSG_ADD_STR_FIELD (msg_p, name_p);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   /* Rule fields */
++   if (status == pmc_ok_e)
++   {
++      MSG_EXTRACT_UINT32(buffer_pos_p, num_reactions);
++   
++      expr_names_p = (char **)calloc(sizeof(char **) * num_reactions, 1);
++   
++      if (expr_names_p == NULL)
++      {
++         fprintf(stderr,
++                 "Failed to allocate memory for receive buffer: %s\n",
++                 strerror(errno));
++         PMCD_CLOSE;
++         return pmc_no_memory_e;
++      }
++   
++      for (count = 0; count < num_reactions; count++)
++      {
++         MSG_EXTRACT_STR(buffer_pos_p, tmp_str_p);
++         expr_names_p[count] = strdup(tmp_str_p);
++
++         if (expr_names_p[count] == NULL)
++         {
++            fprintf(stderr,
++                    "Failed to allocate memory for expression name: %s\n",
++                    strerror(errno));
++            PMCD_CLOSE;
++            return pmc_no_memory_e;
++         }
++      }
++   
++      MSG_EXTRACT_UINT32(buffer_pos_p, db_index);
++   
++      // User must use pmc_free_rule function to free this memory.
++      *rule_info_p = (pmc_rule_t *)calloc(sizeof(pmc_rule_t), 1);
++
++      if (*rule_info_p == NULL)
++      {
++         fprintf(stderr,
++                 "Failed to allocate memory for rule information.\n");
++         PMCD_CLOSE;
++         return pmc_no_memory_e;
++      }
++
++      (*rule_info_p)->name_p        = strdup(name_p);
++      (*rule_info_p)->num_reactions = num_reactions;
++      (*rule_info_p)->expr_names_p  = expr_names_p;
++      (*rule_info_p)->db_index      = db_index;
++   }
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Query the first rule from the database.
++ *
++ * Parameters:
++ *    rule_info_p - Rule object pointer.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_rule_first(pmc_rule_t **rule_info_p,
++                                  char       **info_msg_p)
++{
++   int                   sock_fd;
++   int                   len;
++   int                   result;
++   uint32_t              count;
++   uint8_t              *msg_p;
++   uint8_t              *recv_buffer_p;
++   uint8_t              *buffer_pos_p;
++   struct sockaddr_un    server_address;
++   uint32_t              status;
++   char                 *info_str_p;
++   char                 *name_p;
++   char                 *tmp_str_p;
++
++   uint32_t              num_reactions;
++   char                **expr_names_p;
++   uint32_t              db_index;
++ 
++   PMCD_CONNECT;
++
++   MSG_INIT          (msg_p, _pmc_query_rule_first_e);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   /* Rule fields */
++   if (status == pmc_ok_e)
++   {
++      MSG_EXTRACT_STR   (buffer_pos_p, name_p);
++      MSG_EXTRACT_UINT32(buffer_pos_p, num_reactions);
++   
++      expr_names_p = (char **)calloc(sizeof(char **) * num_reactions, 1);
++   
++      if (expr_names_p == NULL)
++      {
++         fprintf(stderr,
++                 "Failed to allocate memory for receive buffer: %s\n",
++                 strerror(errno));
++         PMCD_CLOSE;
++         return pmc_no_memory_e;
++      }
++   
++      for (count = 0; count < num_reactions; count++)
++      {
++         MSG_EXTRACT_STR(buffer_pos_p, tmp_str_p);
++         expr_names_p[count] = strdup(tmp_str_p);
++
++         if (expr_names_p[count] == NULL)
++         {
++            fprintf(stderr,
++                    "Failed to allocate memory for expression name: %s\n",
++                    strerror(errno));
++            PMCD_CLOSE;
++            return pmc_no_memory_e;
++         }
++      }
++   
++      MSG_EXTRACT_UINT32(buffer_pos_p, db_index);
++   
++      // User must use pmc_free_rule function to free this memory.
++      *rule_info_p = (pmc_rule_t *)calloc(sizeof(pmc_rule_t), 1);
++
++      if (*rule_info_p == NULL)
++      {
++         fprintf(stderr,
++                 "Failed to allocate memory for rule information.\n");
++         PMCD_CLOSE;
++         return pmc_no_memory_e;
++      }
++
++      (*rule_info_p)->name_p        = strdup(name_p);
++      (*rule_info_p)->num_reactions = num_reactions;
++      (*rule_info_p)->expr_names_p  = expr_names_p;
++      (*rule_info_p)->db_index      = db_index;
++   }
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Query the next rule from the database.
++ *
++ * Parameters:
++ *    index       - Index of the current rule.
++ *
++ *    rule_info_p - Rule object pointer.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_rule_next(uint32_t     rule_index,
++                                 pmc_rule_t **rule_info_p,
++                                 char       **info_msg_p)
++{
++   int                   sock_fd;
++   int                   len;
++   int                   result;
++   uint32_t              count;
++   uint8_t              *msg_p;
++   uint8_t              *recv_buffer_p;
++   uint8_t              *buffer_pos_p;
++   struct sockaddr_un    server_address;
++   uint32_t              status;
++   char                 *info_str_p;
++   char                 *name_p;
++   char                 *tmp_str_p;
++
++   uint32_t              num_reactions;
++   char                **expr_names_p;
++   uint32_t              db_index;
++ 
++   PMCD_CONNECT;
++
++   MSG_INIT            (msg_p, _pmc_query_rule_next_e);
++   MSG_ADD_UINT32_FIELD(msg_p, rule_index);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   /* Rule fields */
++   if (status == pmc_ok_e)
++   {
++      MSG_EXTRACT_STR   (buffer_pos_p, name_p);
++      MSG_EXTRACT_UINT32(buffer_pos_p, num_reactions);
++   
++      expr_names_p = (char **)calloc(sizeof(char **) * num_reactions, 1);
++   
++      if (expr_names_p == NULL)
++      {
++         fprintf(stderr,
++                 "Failed to allocate memory for receive buffer: %s\n",
++                 strerror(errno));
++         PMCD_CLOSE;
++         return pmc_no_memory_e;
++      }
++   
++      for (count = 0; count < num_reactions; count++)
++      {
++         MSG_EXTRACT_STR(buffer_pos_p, tmp_str_p);
++         expr_names_p[count] = strdup(tmp_str_p);
++
++         if (expr_names_p[count] == NULL)
++         {
++            fprintf(stderr,
++                    "Failed to allocate memory for expression name: %s\n",
++                    strerror(errno));
++            PMCD_CLOSE;
++            return pmc_no_memory_e;
++         }
++      }
++   
++      MSG_EXTRACT_UINT32(buffer_pos_p, db_index);
++   
++      // User must use pmc_free_rule function to free this memory.
++      *rule_info_p = (pmc_rule_t *)calloc(sizeof(pmc_rule_t), 1);
++
++      if (*rule_info_p == NULL)
++      {
++         fprintf(stderr,
++                 "Failed to allocate memory for rule information.\n");
++         PMCD_CLOSE;
++         return pmc_no_memory_e;
++      }
++
++      (*rule_info_p)->name_p        = strdup(name_p);
++      (*rule_info_p)->num_reactions = num_reactions;
++      (*rule_info_p)->expr_names_p  = expr_names_p;
++      (*rule_info_p)->db_index      = db_index;
++   }
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Set the variable trigger size.
++ *
++ * Parameters:
++ *    size        - The trigger size.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_set_var_trig_size(uint32_t   size,
++                                   char     **info_msg_p)
++{
++   int                   sock_fd;
++   int                   len;
++   int                   result;
++   uint8_t              *msg_p;
++   uint8_t              *recv_buffer_p;
++   uint8_t              *buffer_pos_p;
++   struct sockaddr_un    server_address;
++   uint32_t              status;
++   char                 *info_str_p;
++
++   PMCD_CONNECT;
++
++   MSG_INIT            (msg_p, _pmc_set_var_trig_e);
++   MSG_ADD_UINT32_FIELD(msg_p, size);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Run some expression analysis
++ *
++ * Parameters:
++ *    log_str_p   - A log string of the analysis results.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_analysis(char **log_msg_p,
++                          char **info_msg_p)
++{
++   int                   sock_fd;
++   int                   len;
++   int                   result;
++   uint8_t              *msg_p;
++   uint8_t              *recv_buffer_p;
++   uint8_t              *buffer_pos_p;
++   struct sockaddr_un    server_address;
++   uint32_t              status;
++   char                 *log_str_p;
++   char                 *info_str_p;
++
++   PMCD_CONNECT;
++
++   MSG_INIT            (msg_p, _pmc_analysis_e);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   if (status == pmc_ok_e)
++   {
++      MSG_EXTRACT_STR(buffer_pos_p, log_str_p);
++      *log_msg_p = strdup(log_str_p);
++   }
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Free generated expression objects.
++ *
++ * Parameters:
++ *    expr_p   - Expression object (or list of objects) to be freed.
++ */
++void pmc_free_expr(pmc_expr_t *expr_p)
++{
++   pmc_expr_t *next_p;
++   pmc_expr_t *cur_p;
++
++   cur_p  = expr_p;
++
++   while (cur_p != NULL)
++   {
++      next_p = cur_p->next_p;
++
++      FREE(cur_p->name_p);
++      FREE(cur_p->expr_str_p);
++      FREE(cur_p->opt_str_p);
++      FREE(cur_p);
++
++      cur_p = next_p;
++   }
++}
++
++/*
++ * Free generated rule objects.
++ *
++ * Parameters:
++ *    rule_p   - Rule object to be freed.
++ */
++void pmc_free_rule(pmc_rule_t *rule_p)
++{
++   uint32_t count;
++
++   FREE(rule_p->name_p);
++
++   for (count = 0; count < rule_p->num_reactions; count++)
++   {
++      FREE((rule_p->expr_names_p)[count]);
++   }
++
++   FREE(rule_p);
++}
++
++/*
++ * Get hardware and linker loader statistics.
++ *
++ * Parameters:
++ *    stats_p     - A pointer to a pmc_stats_t object that will be filled in.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_stats_get(pmc_stats_t  *stats_p,
++                           char        **info_msg_p)
++{
++   int                   sock_fd;
++   int                   len;
++   int                   result;
++   uint8_t              *msg_p;
++   uint8_t              *recv_buffer_p;
++   uint8_t              *buffer_pos_p;
++   struct sockaddr_un    server_address;
++   uint32_t              status;
++   char                 *info_str_p;
++
++   PMCD_CONNECT;
++
++   MSG_INIT(msg_p, _pmc_stats_e);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   if (status == pmc_ok_e)
++   {
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_input_bytes);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_output_bytes);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_trigger_one_byte_hits);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_trigger_two_byte_hits);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_trigger_variable_hits);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_trigger_special_hits);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_confidence_hits);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_matches);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_dxe_executions);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_end_of_sui_executions);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_sui_matching_patterns);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_sui_generating_reports);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_input_suis);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->pm_selected_matches);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->df_input_bytes);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->df_output_bytes);
++      MSG_EXTRACT_UINT64(buffer_pos_p, stats_p->df_decompressions);
++
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->dxeSreEntryNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->dxeSreBaseEntryNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->dxeSreExtensionEntryNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->dxeSreAllocatedExtensionEntryNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->dxeSreAvailableExtensionEntryNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->sreSessionCtxNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->sreSessionCtxSize);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->sreSessionDigestSize);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->sreSessionFlagsSize);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->sreSessionCtxAreaSize);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->sreAllocatedSessionCtxAreaSize);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->sreAvailableSessionCtxAreaSize);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->patternMaxNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->expNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->specialPatternNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->oneBytePatternNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->twoBytePatternNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->variablePatternNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->totalPatternNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->variableTriggerSize);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->statefulRuleMaxNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->statelessRuleMaxNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->totalRuleMaxNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->statelessRuleNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->statefulRuleNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->totalRuleNum);
++      MSG_EXTRACT_UINT32(buffer_pos_p, stats_p->endOfSuiReactionNum);
++   }
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
++
++/*
++ * Reset the hardware statistics.
++ *
++ * Parameters:
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_stats_reset(char **info_msg_p)
++{
++   int                   sock_fd;
++   int                   len;
++   int                   result;
++   uint8_t              *msg_p;
++   uint8_t              *recv_buffer_p;
++   uint8_t              *buffer_pos_p;
++   struct sockaddr_un    server_address;
++   uint32_t              status;
++   char                 *info_str_p;
++
++   PMCD_CONNECT;
++
++   MSG_INIT(msg_p, _pmc_stats_reset_e);
++
++   PMCD_SEND;
++
++   MSG_FREE(msg_p);
++
++   result = _pmcapi_recv_response(sock_fd,
++                                  &recv_buffer_p);
++
++   if (result != 0)
++   {
++      fprintf(stderr,
++              "Failed to receive response from pmcd: %s\n",
++              strerror(result));
++      PMCD_CLOSE;
++      return pmc_recv_fail_e;
++   }
++
++   buffer_pos_p = recv_buffer_p;
++
++   MSG_EXTRACT_UINT32(buffer_pos_p, status);
++   MSG_EXTRACT_STR   (buffer_pos_p, info_str_p);
++
++   *info_msg_p = strdup(info_str_p);
++
++   free(recv_buffer_p);
++
++   PMCD_CLOSE;
++   return (pmc_status_t)status;
++}
+diff --git a/pmConfiguration/pmcapi.h b/pmConfiguration/pmcapi.h
+new file mode 100644
+index 0000000..c0dea32
+--- /dev/null
++++ b/pmConfiguration/pmcapi.h
+@@ -0,0 +1,564 @@
++/************************< BEGIN COPYRIGHT >************************
++ *  
++ *   Copyright 2009, Freescale Semiconductor, Inc.  All Rights Reserved.
++ *  
++ *    NOTICE: The information contained in this file is proprietary 
++ *    to Freescale Semiconductor and is being made available to 
++ *    Freescale's customers under a specific license agreement. 
++ *    Use or disclosure of this information is permissible only 
++ *    under the terms of the license agreement. 
++ *  
++ * 
++ ************************< END COPYRIGHT >***************************/
++/* ========================================================================== *
++ * Pattern Matcher Configuration API
++ *
++ * File Name: pmcapi.h
++ * Author   : Vince Hendricks
++ * ========================================================================== */
++
++#ifndef __PMCAPI_H__
++#define __PMCAPI_H__
++
++#include <generic_types.h>
++
++/* -------------------------------------------------------------------------
++ * Type definitions
++ * ------------------------------------------------------------------------- */
++
++typedef enum {
++   pmc_ok_e                   = 0,
++   pmc_init_fail_e            = 1,
++   pmc_connect_fail_e         = 2,
++   pmc_send_fail_e            = 3,
++   pmc_recv_fail_e            = 4,
++   pmc_commit_fail_e          = 5,
++   pmc_open_file_fail_e       = 6,
++   pmc_record_read_fail_e     = 7,
++   pmc_unsupported_pme_ver_e  = 8,
++   pmc_unsupported_si_ver_e   = 9,
++   pmc_incompatible_si_ver_e  = 10,
++   pmc_no_memory_e            = 11,
++   pmc_record_add_fail_e      = 12,
++   pmc_delete_fail_e          = 13,
++   pmc_query_fail_e           = 14,
++   pmc_set_var_trig_fail_e    = 15,
++   pmc_analysis_fail_e        = 16,
++} pmc_status_t;
++
++typedef struct pmc_expr {
++   char            *name_p;
++   char            *expr_str_p;
++   char            *opt_str_p;
++   uint32_t         db_index;
++   struct pmc_expr *next_p;
++} pmc_expr_t;
++
++typedef struct pmc_rule {
++   char      *name_p;
++   uint32_t   num_reactions;
++   char     **expr_names_p;
++   uint32_t   db_index;
++} pmc_rule_t;
++
++typedef struct pmc_stats {
++
++   /* ========================================================================
++    *                Pattern Matcher hardware stats
++    * ========================================================================*/
++
++   /* The number of input bytes reported by KES */
++   uint64_t  pm_input_bytes;
++
++   /* The number of output report bytes reported by SRE */
++   uint64_t  pm_output_bytes;
++
++   /* The number of one byte trigger hits reported by KES */
++   uint64_t  pm_trigger_one_byte_hits;
++
++   /* The number of two byte trigger hits reported by KES */
++   uint64_t  pm_trigger_two_byte_hits;
++
++   /* The number of variable byte trigger hits reported by KES */
++   uint64_t  pm_trigger_variable_hits;
++
++   /* The number of special trigger hits reported by KES */
++   uint64_t  pm_trigger_special_hits;
++
++   /* The number of confidence stage hits reported by KES */
++   uint64_t  pm_confidence_hits;
++
++   /* The number of matches reported by DXE */
++   uint64_t  pm_matches;
++
++   /* The number of SR executions triggered by DXE reported by SRE */
++   uint64_t  pm_dxe_executions;
++
++   /* The number of SR executions triggered by End of SUI reported by SRE */
++   uint64_t  pm_end_of_sui_executions;
++
++   /* The number SUIs with matches reported by DXE */
++   uint64_t  pm_sui_matching_patterns;
++
++   /* The number of SUIs that generate reports reported by SRE */
++   uint64_t  pm_sui_generating_reports;
++
++   /* The number of input SUIs reported by KES */
++   uint64_t  pm_input_suis;
++
++   /* The number of matches with DRCC reported by DXE */
++   uint64_t  pm_selected_matches;
++
++   /* ========================================================================
++    *                Deflate hardware stats
++    * ========================================================================*/
++
++   /* The number of deflate input bytes reported by DFL */
++   uint64_t  df_input_bytes;
++
++   /* The number of deflate output bytes reported by DFL */
++   uint64_t  df_output_bytes;
++
++   /* The number of deflate work units reported by DFL */
++   uint64_t  df_decompressions;
++
++   /* ========================================================================
++    *                Linker Loader software stats
++    * ========================================================================*/
++
++   /* -----------------------------------------------------------
++    *                DXE/SRE table statistics. 
++    * -----------------------------------------------------------*/
++
++   /* The total number of the DXE/SRE entries present in the DXE/SRE
++    * table, i.e., this is the DXE/SRE table size.  This value is
++    * specified in a call to the pmll_db_create() function. */ 
++   uint32_t  dxeSreEntryNum;
++ 
++   /* The number of the base entries in the DXE/SRE table.  For a given
++    * release of PMLL this number is constant.  This number is also the
++    * minimum size of the DXE/SRE table. */
++   uint32_t  dxeSreBaseEntryNum;
++   
++   /* The number of the DXE/SRE extension entries, i.e., the number of
++    * the "non-base" entries in the DXE/SRE table. */
++    uint32_t  dxeSreExtensionEntryNum;
++ 
++   /* The number of the currently allocated extension entries. */ 
++   uint32_t  dxeSreAllocatedExtensionEntryNum;
++ 
++   /* The number of the currently available extension entries. */
++   uint32_t  dxeSreAvailableExtensionEntryNum;
++ 
++ 
++   /* ------------------------------------------------------
++    *                 SRE session statistics. 
++    * ------------------------------------------------------*/
++
++   /* The number of the SRE sessions.  This value is specified in a
++    * call to the pmll_db_create() function. */
++   uint32_t  sreSessionCtxNum;
++ 
++   /* The size (in bytes) of each of the SRE sessions.  This value is
++    * specified in a call to the pmll_db_create() function. */
++   uint32_t  sreSessionCtxSize;
++ 
++   /* The size (in bytes) of the session digest area.  This value
++    * depends on the number of SRE rules as specified by the user in
++    * a call to the pmll_db_create() function. */
++   uint32_t  sreSessionDigestSize;
++ 
++   /* The size (in bytes) of the session flags area.  This value is
++    * constant for a given release of PMLL. */
++   uint32_t  sreSessionFlagsSize;
++ 
++   /* The size (in bytes) of the session context areas. */
++   uint32_t  sreSessionCtxAreaSize;
++ 
++   /* The size (in bytes) of the currently allocated session context areas. */
++   uint32_t  sreAllocatedSessionCtxAreaSize;
++ 
++   /* The size (in bytes) of the currently available session context areas. */
++   uint32_t  sreAvailableSessionCtxAreaSize;
++ 
++   /* -----------------------------------------------------------
++    *             Expression and pattern statistics.
++    * -----------------------------------------------------------*/
++
++   /* The maximum number of patterns that can be configured.  This value is
++    * constant for a given release of PMLL. */
++   uint32_t patternMaxNum;
++   
++   /* The number of the currently configured expressions. */
++   uint32_t  expNum;
++ 
++   /* The number of the currently configured "special" patterns. */
++   uint32_t  specialPatternNum;
++ 
++   /* The number of the currently configured "one-byte" patterns. */
++   uint32_t  oneBytePatternNum;
++ 
++   /* The number of the currently configured "two-byte" patterns. */
++   uint32_t  twoBytePatternNum;
++ 
++   /* The number of the currently configured "variable" patterns. */
++   uint32_t  variablePatternNum;
++ 
++   /* The total number of the currently configured patterns. */
++   uint32_t  totalPatternNum;
++ 
++   /* The currently configured variable trigger size. */
++   uint32_t  variableTriggerSize;
++ 
++   /* -----------------------------------------------------------
++    *               Rule and reaction statistics.
++    * -----------------------------------------------------------*/
++
++   /* The maximum number of stateful rules.  This value is specified in
++    * a call to the pmll_db_create() function. */
++   uint32_t  statefulRuleMaxNum;
++ 
++   /* The maximum number of stateless rules.  This value is constant
++    * for a given release of PMLL. */
++   uint32_t  statelessRuleMaxNum;
++ 
++   /* The maximum number of all rules.  This value is constant for a
++    * given release of PMLL. */
++   uint32_t  totalRuleMaxNum;
++ 
++   /* The number of the currently configured stateless rules. */
++   uint32_t  statelessRuleNum;
++ 
++   /* The number of the currently configured stateful rules. */
++   uint32_t  statefulRuleNum;
++ 
++   /* The number of the currently configured rules. */
++   uint32_t  totalRuleNum;
++ 
++   /* The number of the currently configured end-of-SUI reactions. */
++   uint32_t  endOfSuiReactionNum;  
++} pmc_stats_t;
++
++/* -------------------------------------------------------------------------
++ * API
++ * ------------------------------------------------------------------------- */
++
++/*
++ * Add a precompiled binary regular expression file to the database.
++ *
++ * Parameters:
++ *    filename_p  - Full path name of the compiled binary.
++ *
++ *    auto_commit - Flag to indicate if you wish to auto commit the file.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_add_expr_file(char  *filename_p,
++                               bool   auto_commit,
++                               char **info_msg_p);
++
++/*
++ * Delete the expressions from a precompiled binary regular expression file
++ * from the database.
++ *
++ * Parameters:
++ *    filename_p  - Full path name of the compiled binary.
++ *
++ *    auto_commit - Flag to indicate if you wish to auto commit the file.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_expr_file(char  *filename_p,
++                               bool   auto_commit,
++                               char **info_msg_p);
++
++/*
++ * Add a precompiled binary stateful rule file to the database.
++ *
++ * Parameters:
++ *    filename_p  - Full path name of the compiled binary.
++ *
++ *    auto_commit - Flag to indicate if you wish to auto commit the file.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_add_rule_file(char  *filename_p,
++                               bool   auto_commit,
++                               char **info_msg_p);
++
++/*
++ * Delete the rules from a precompiled binary stateful rule file
++ * from the database.
++ *
++ * Parameters:
++ *    filename_p  - Full path name of the compiled binary.
++ *
++ *    auto_commit - Flag to indicate if you wish to auto commit the file.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_rule_file(char  *filename_p,
++                               bool   auto_commit,
++                               char **info_msg_p);
++
++/*
++ * Delete all regular expressions from the database.
++ *
++ * Parameters:
++ *    auto_commit - Flag to indicate if you wish to auto commit.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_all_expr(bool   auto_commit,
++                              char **info_msg_p);
++
++/*
++ * Delete all stateful rules from the database.
++ *
++ * Parameters:
++ *    auto_commit - Flag to indicate if you wish to auto commit.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_all_rule(bool   auto_commit,
++                              char **info_msg_p);
++
++/*
++ * Delete all stateful rules and regular expressions from the database.
++ *
++ * Parameters:
++ *    auto_commit - Flag to indicate if you wish to auto commit.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_all(bool   auto_commit,
++                         char **info_msg_p);
++
++/*
++ * Delete a regular expression with a given name from the database.
++ *
++ * Parameters:
++ *    name_p      - Expression name.
++ *
++ *    auto_commit - Flag to indicate if you wish to auto commit.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_expr_name(char  *name_p,
++                               bool   auto_commit,
++                               char **info_msg_p);
++
++/*
++ * Delete a stateful rule with a given name from the database.
++ *
++ * Parameters:
++ *    name_p      - Rule name.
++ *
++ *    auto_commit - Flag to indicate if you wish to auto commit.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_rule_name(char  *name_p,
++                               bool   auto_commit,
++                               char **info_msg_p);
++
++/*
++ * Delete a regular expression with a given set and subset from the database.
++ *
++ * Parameters:
++ *    set         - Set number.
++ *
++ *    subset      - Subset mask.
++ *
++ *    auto_commit - Flag to indicate if you wish to auto commit.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_del_expr_set(uint8_t    set,
++                              uint16_t   subset,
++                              bool       auto_commit,
++                              char     **info_msg_p);
++
++/*
++ * Commit the database.
++ *
++ * Parameters:
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_commit(char **info_msg_p);
++
++/*
++ * Query a regular expression with a given name from the database.
++ *
++ * Parameters:
++ *    name_p      - Expression name.
++ *
++ *    expr_info_p - Expression object pointer to be filled in.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_expr_name(char        *name_p,
++                                 pmc_expr_t **expr_info_p,
++                                 char       **info_msg_p);
++
++/*
++ * Query regular expressions with a given set/subset from the database.
++ *
++ * Parameters:
++ *    set         - Set number.
++ *
++ *    subset      - Subset mask.
++ *
++ *    expr_info_p - Expression object pointer to be filled in.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_expr_set(uint8_t      set,
++                                uint16_t     subset,
++                                pmc_expr_t **expr_info_p,
++                                char       **info_msg_p);
++
++/*
++ * Query the first regular expression from the database.
++ *
++ * Parameters:
++ *    expr_info_p - Expression pointer object to be filled in.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_expr_first(pmc_expr_t **expr_info_p,
++                                  char       **info_msg_p);
++
++/*
++ * Query the next regular expression from the database.
++ *
++ * Parameters:
++ *    index       - Index of the current expression object.
++ *
++ *    expr_info_p - Expression object pointer to be filled in.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_expr_next(uint32_t     index,
++                                 pmc_expr_t **expr_info_p,
++                                 char       **info_msg_p);
++
++/*
++ * Query a rule with a given name from the database.
++ *
++ * Parameters:
++ *    name_p      - Rule name.
++ *
++ *    rule_info_p - Rule object pointer to be filled in.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_rule_name(char        *name_p,
++                                 pmc_rule_t **rule_info_p,
++                                 char       **info_msg_p);
++
++/*
++ * Query a rule with a given name from the database.
++ *
++ * Parameters:
++ *    rule_info_p - Rule object pointer to be filled in.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_rule_first(pmc_rule_t **rule_info_p,
++                                  char       **info_msg_p);
++
++/*
++ * Query a rule with a given name from the database.
++ *
++ * Parameters:
++ *    index       - Index of current rule.
++ *
++ *    rule_info_p - Rule object pointer to be filled in.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_query_rule_next(uint32_t     index,
++                                 pmc_rule_t **rule_info_p,
++                                 char       **info_msg_p);
++
++/*
++ * Set the variable trigger size.
++ *
++ * Parameters:
++ *    size        - The trigger size.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_set_var_trig_size(uint32_t   size,
++                                   char     **info_msg_p);
++
++/*
++ * Run some expression analysis
++ *
++ * Parameters:
++ *    log_str_p   - A log string of the analysis results.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_analysis(char **log_str_p,
++                          char **info_msg_p);
++
++/*
++ * Get hardware and linker loader statistics.
++ *
++ * Parameters:
++ *    stats_p     - A pointer to a pmc_stats_t object that will be filled in.
++ *
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_stats_get(pmc_stats_t  *stats_p,
++                           char        **info_msg_p);
++
++/*
++ * Reset the hardware statistics.
++ *
++ * Parameters:
++ *    info_msg_p  - A pointer to a string that will be filled in with error
++ *                  or other information.
++ */
++pmc_status_t pmc_stats_reset(char **info_msg_p);
++
++/*
++ * Free generated expression objects.
++ *
++ * Parameters:
++ *    expr_p   - Expression object (or list of objects) to be freed.
++ */
++void pmc_free_expr(pmc_expr_t *expr_p);
++
++/*
++ * Free generated rule objects.
++ *
++ * Parameters:
++ *    rule_p   - Rule object to be freed.
++ */
++void pmc_free_rule(pmc_rule_t *rule_p);
++
++#endif /* __PMCAPI_H__ */
+-- 
+1.6.0
+

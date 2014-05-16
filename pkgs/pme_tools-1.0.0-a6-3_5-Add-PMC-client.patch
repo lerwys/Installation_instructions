@@ -1,0 +1,1725 @@
+From 629b1d2f65c82843564d434ad4fe587d499b718b Mon Sep 17 00:00:00 2001
+From: Vince Hendricks <vince.hendricks@freescale.com>
+Date: Tue, 13 Oct 2009 11:31:49 -0400
+Subject: [PATCH 3/6] Add PMC client.
+
+Add the PMC client that will interact with the PMC daemon.
+
+Signed-off-by: Vince Hendricks <vince.hendricks@freescale.com>
+Signed-off-by: Paul Barrette <paul.barrette@freescale.com>
+---
+ pmConfiguration/pmcc.c | 1702 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 1702 insertions(+), 0 deletions(-)
+ create mode 100644 pmConfiguration/pmcc.c
+
+diff --git a/pmConfiguration/pmcc.c b/pmConfiguration/pmcc.c
+new file mode 100644
+index 0000000..9c0bd95
+--- /dev/null
++++ b/pmConfiguration/pmcc.c
+@@ -0,0 +1,1702 @@
++/************************< BEGIN COPYRIGHT >************************
++ *  
++ *   Copyright 2009, Freescale Semiconductor, Inc.  All Rights Reserved.
++ *  
++ *    NOTICE: The information contained in this file is proprietary 
++ *    to Freescale Semiconductor and is being made available to 
++ *    Freescale's customers under a specific license agreement. 
++ *    Use or disclosure of this information is permissible only 
++ *    under the terms of the license agreement. 
++ *  
++ * 
++ ************************< END COPYRIGHT >***************************/
++/****************************************************************************
++ *   File Name : pmcc.c
++ *   Author    : Ka-On Lee
++ *
++ *   This file contains the implementation of the Pattern Matching
++ *   Configuration Client application.
++ *
++ ****************************************************************************/
++
++#include <arpa/inet.h>
++#include <errno.h>
++#include <stdio.h>
++#include <unistd.h>
++#include <string.h>
++#include <stdio.h>
++#include <sys/stat.h>
++#include <sys/types.h>
++#include <time.h>
++#include <getopt.h>
++
++#include <cli.h>
++#include <hndl.h>
++#include <generic_types.h>
++#include <log.h>
++#include <mem.h>
++#include <pm_defs.h>
++#include <pmrec.h>
++#include <pmsrc.h>
++#include <pmcapi.h>
++
++
++typedef struct {
++    bool      auto_commit;
++    bool      exit_on_error;
++    bool      option8572rev1_0;
++    handle_t  cliHandle;
++    pmc_stats_t old_stats;
++} pmcc_ctx_t;
++
++
++/* This macro defines the maximum number of parameters in a CLI
++ * command. */
++#define _PMCC_PARAM_MAX_NUM 32
++
++#define TIME_STRING_SIZE 256
++
++extern FILE   *_pmc_log_stream_pg;
++extern time_t  _pmc_cur_time_g;
++extern char    _pmc_time_string_pg[TIME_STRING_SIZE];
++
++/* The next few variables define the names of the commands available
++ * in the Pattern Matching CLI. */
++static const char *_pmcc_add_cmd_sg                   = "add";
++static const char *_pmcc_commit_cmd_sg                = "commit";
++static const char *_pmcc_delete_cmd_sg                = "delete";
++//static const char *_pmcc_ping_cmd_sg                  = "ping";
++//static const char *_pmcc_reset_cmd_sg                 = "reset";
++//static const char *_pmcc_read_cmd_sg                  = "read";
++static const char *_pmcc_set_cmd_sg                   = "set";
++static const char *_pmcc_show_cmd_sg                  = "show";
++
++
++/* The next few variables define the keywords used in the CLI
++ * commands. */
++
++static const char *_pmcc_all_kw_sg               = "all";
++static const char *_pmcc_attribute_kw_sg         = "attribute";
++static const char *_pmcc_attributes_kw_sg        = "attributes";
++static const char *_pmcc_binary_kw_sg            = "binary";
++//static const char *_pmcc_count_kw_sg             = "count";
++static const char *_pmcc_counter_kw_sg           = "counter";
++//static const char *_pmcc_equivalence_kw_sg       = "equivalence";
++static const char *_pmcc_exp_kw_sg               = "exp";
++static const char *_pmcc_file_kw_sg              = "file";
++static const char *_pmcc_filename_kw_sg          = "filename";
++static const char *_pmcc_h_kw_sg                 = "h";
++static const char *_pmcc_help_kw_sg              = "help";
++static const char *_pmcc_ll_kw_sg                = "ll";
++static const char *_pmcc_hw_kw_sg                = "hw";
++static const char *_pmcc_name_kw_sg              = "name";
++static const char *_pmcc_options_kw_sg           = "options";
++static const char *_pmcc_qm_kw_sg                = "?";
++static const char *_pmcc_regex_kw_sg             = "regex";
++static const char *_pmcc_report_kw_sg            = "noreport";
++static const char *_pmcc_rule_kw_sg              = "rule";
++static const char *_pmcc_set_kw_sg               = "set";
++static const char *_pmcc_subsets_kw_sg           = "subsets";
++static const char *_pmcc_source_kw_sg            = "source";
++static const char *_pmcc_stats_kw_sg             = "stats";
++static const char *_pmcc_tag_kw_sg               = "tag";
++//static const char *_pmcc_table_kw_sg             = "table";
++static const char *_pmcc_variablesize_kw_sg      = "variablesize";
++//static const char *_pmcc_version_kw_sg           = "version";
++static const char *_pmcc_analysis_kw_sg          = "analysis";
++
++
++/* The next variable defines the delimiters accepted between the
++ * keywords of a CLI commands when the command is parsed with the
++ * cli_command_parse() function. */
++static char  *_pmcc_delimiters_sg = " \t";
++
++
++/* The next few variables define messages used by the different CLI
++ * commands. */
++static const char *_pmcc_invalid_param_sg     =
++  "\"%s\" is an invalid parameter for the \"%s\" command/option.\n";
++//static const char *_pmcc_too_many_params_sg   =
++//  "There are too many parameters for the \"%s\" command/option.\n";
++static const char *_pmcc_too_few_params_sg    =
++  "Insufficient number of parameters for the \"%s\" command/option.\n";
++
++
++/* The next few macros display common command option strings. */
++#define _PMCC_QM_STRING_DISPLAY()                                              \
++  printf("\n\t%s"                                                    \
++          "\n\t   Like the %s option; displays the synopsis of the command.", \
++          _pmcc_qm_kw_sg, _pmcc_h_kw_sg);
++#define _PMCC_HSTRING_DISPLAY()                                                \
++  printf("\n\t%s"                                                    \
++          "\n\t   Like the %s option; displays the synopsis of the command.", \
++          _pmcc_h_kw_sg, _pmcc_qm_kw_sg);
++#define _PMCC_HELP_STRING_DISPLAY()                                            \
++  printf("\n\t%s"                                                    \
++          "\n\t   Displays the help information for the command.",            \
++          _pmcc_help_kw_sg);
++#define _PMCC_VERSION_STRING_DISPLAY()                                         \
++  printf("\n\t%s"                                                    \
++          "\n\t   Indicates that a version of a sub-system is to be read.  "  \
++          "\n\t   The following keyword indicates the sub-system to read "    \
++          "\n\t   the version from.", _pmcc_version_kw_sg);
++#define _PMCC_HW_STRING_DISPLAY()                                              \
++  printf("\n\t%s"                                                    \
++          "\n\t   Indicates that the operation should be carried out on the " \
++          "\n\t   PM H/W.", _pmcc_hw_kw_sg);
++
++
++
++/*--------------------- Static Function Definitions ---------------*/
++
++static void _pmcc_print_help(void)
++{
++    printf( "\n Usage: "
++            "\n\tpmcc <options>\n");
++    printf( "\n Options:");
++    printf( "\n -a, --auto-commit"
++            "\n\tTurn on automatic commit option.  All changes made by "
++            "\n\tadd/delete command will be immediately commited to "
++            "\n\tPME hardware.");
++    printf( "\n -e, --exit-on-error"
++            "\n\tTurn on the exit-on-error flag.  This flag makes the "
++            "\n\tapplication terminate upon encountering an error.  "
++            "\n\tThis behavior could be useful in situations when the "
++            "\n\tapplication runs in a non-interactive mode.");
++#ifdef PME_1_1
++    printf( "\n --8572rev1.0"
++            "\n\tCompile for 8572 rev 1.0 silicon.");
++#endif
++    printf( "\n\n");
++}
++
++/* =================================================================== */
++/*                    PMCC API interface functions                     */
++/* =================================================================== */
++static int _pmcc_regexs_from_bin_file_add(pmcc_ctx_t* pmcc_ctx, char* binFileName)
++{
++    pmc_status_t  status;
++    char         *info_msg_p = NULL;
++    
++    pmcc_ctx = pmcc_ctx;
++    status = pmc_add_expr_file(binFileName,
++                               pmcc_ctx->auto_commit,
++                               &info_msg_p);
++    if(info_msg_p != NULL) {
++        printf("\n%s\n", info_msg_p);
++        free(info_msg_p);
++    }
++    return status;
++}
++
++static int _pmcc_regexs_from_bin_file_del(pmcc_ctx_t* pmcc_ctx, char* binFileName)
++{
++    pmc_status_t  status;
++    char         *info_msg_p = NULL;
++
++    pmcc_ctx = pmcc_ctx;
++    status = pmc_del_expr_file(binFileName,
++                               pmcc_ctx->auto_commit,
++                               &info_msg_p);
++    if(info_msg_p != NULL) {
++        printf("\n%s\n", info_msg_p);
++        free(info_msg_p);
++    }
++    return status;
++}
++
++static int _pmcc_rules_from_bin_file_add(pmcc_ctx_t* pmcc_ctx, char* binFileName)
++{
++    pmc_status_t  status;
++    char         *info_msg_p = NULL;
++
++    pmcc_ctx = pmcc_ctx;
++    status = pmc_add_rule_file(binFileName,
++                               pmcc_ctx->auto_commit,
++                               &info_msg_p);
++    if(info_msg_p != NULL) {
++        printf("\n%s\n", info_msg_p);
++        free(info_msg_p);
++    }
++    return status;
++}
++
++static int _pmcc_rules_from_bin_file_del(pmcc_ctx_t* pmcc_ctx, char* binFileName)
++{
++    pmc_status_t  status;
++    char         *info_msg_p = NULL;
++
++    pmcc_ctx = pmcc_ctx;
++    status = pmc_del_rule_file(binFileName,
++                               pmcc_ctx->auto_commit,
++                               &info_msg_p);
++    if(info_msg_p != NULL) {
++        printf("\n%s\n", info_msg_p);
++        free(info_msg_p);
++    }
++    return status;
++}
++
++static int _pmcc_commit(void)
++{
++    pmc_status_t  status;
++    char         *info_msg_p = NULL;
++
++    status = pmc_commit(&info_msg_p);
++    if(info_msg_p != NULL) {
++        printf("\n%s\n", info_msg_p);
++        free(info_msg_p);
++    }
++    return status;
++}
++
++static int _pmcc_delete_all_expr(pmcc_ctx_t* pmcc_ctx)
++{
++    pmc_status_t  status;
++    char         *info_msg_p = NULL;
++
++    status = pmc_del_all_expr(pmcc_ctx->auto_commit,
++                              &info_msg_p);
++    if(info_msg_p != NULL) {
++        printf("\n%s\n", info_msg_p);
++        free(info_msg_p);
++    }
++    return status;
++}
++
++static int _pmcc_delete_all_rule(pmcc_ctx_t* pmcc_ctx)
++{
++    pmc_status_t  status;
++    char         *info_msg_p = NULL;
++
++    status = pmc_del_all_rule(pmcc_ctx->auto_commit,
++                              &info_msg_p);
++    if(info_msg_p != NULL) {
++        printf("\n%s\n", info_msg_p);
++        free(info_msg_p);
++    }
++    return status;
++}
++
++static int _pmcc_delete_all(pmcc_ctx_t* pmcc_ctx)
++{
++    pmc_status_t  status;
++    char         *info_msg_p = NULL;
++
++    status = pmc_del_all(pmcc_ctx->auto_commit,
++                         &info_msg_p);
++    if(info_msg_p != NULL) {
++        printf("\n%s\n", info_msg_p);
++        free(info_msg_p);
++    }
++    return status;
++}
++
++static int _pmcc_delete_name_expr(char *name_p, pmcc_ctx_t* pmcc_ctx)
++{
++    pmc_status_t  status;
++    char         *info_msg_p = NULL;
++
++    status = pmc_del_expr_name(name_p,
++                               pmcc_ctx->auto_commit,
++                               &info_msg_p);
++    if(info_msg_p != NULL) {
++        printf("\n%s\n", info_msg_p);
++        free(info_msg_p);
++    }
++    return status;
++}
++
++static int _pmcc_delete_name_rule(char *name_p, pmcc_ctx_t* pmcc_ctx)
++{
++    pmc_status_t  status;
++    char         *info_msg_p = NULL;
++
++    status = pmc_del_rule_name(name_p,
++                               pmcc_ctx->auto_commit,
++                               &info_msg_p);
++    if(info_msg_p != NULL) {
++        printf("\n%s\n", info_msg_p);
++        free(info_msg_p);
++    }
++    return 0;
++}
++
++static int _pmcc_del_expr_set(uint8_t set, uint16_t subset, pmcc_ctx_t* pmcc_ctx)
++{
++    pmc_status_t  status;
++    char         *info_msg_p = NULL;
++
++    status = pmc_del_expr_set(set, subset, pmcc_ctx->auto_commit, &info_msg_p);
++    if(info_msg_p != NULL) {
++        printf("\n%s\n", info_msg_p);
++        free(info_msg_p);
++    }
++    
++    return status;
++}
++
++static int _pmcc_compile_regex(char* srcFileName, char* binFileName, pmcc_ctx_t* pmcc_ctx, bool tmpFile)
++{
++    int status                                   = 0;
++    char                   *recCompileMessage_p  = NULL;
++    pmrec_error_codes_t     recCompileStatus     = 0;
++    pmrec_module_options_t  recCompileOptions;
++    
++    memset(&recCompileOptions, 0, sizeof(recCompileOptions));
++    recCompileOptions.debug_level            = pmrec_debug_none_e;
++    recCompileOptions.group_definition       = pmrec_groups_default0_e;
++    recCompileOptions.group_def_filename_p   = NULL;
++    recCompileOptions.equivalence_definition = pmrec_equivalence_default0_e;
++    recCompileOptions.equiv_def_filename_p   = NULL;
++    recCompileOptions.warnings_are_errors    = false;
++    recCompileOptions.suppress_warnings      = false;
++    recCompileOptions.hide_strings           = false;
++    recCompileOptions.silicon_8572_rev_1_0   = pmcc_ctx->option8572rev1_0;
++    recCompileStatus = pmrec_compile(srcFileName,
++                                     binFileName,
++                                     &recCompileOptions,
++                                     &recCompileMessage_p);
++    if (NULL != recCompileMessage_p) {
++        printf("%s\n", recCompileMessage_p);
++        free(recCompileMessage_p);
++    }
++    switch (recCompileStatus) {
++        case pmrec_ok_e:
++            if (!tmpFile) {
++                printf("Successfully compiled the \"%s\" regex source file.\n",
++                        srcFileName);
++            } else {
++                printf("Successfully compiled the expression.\n");
++            }
++            break;
++        case pmrec_warnings_e:
++            if (!tmpFile) {
++                printf("Successfully compiled the \"%s\" regex source file with warnings.\n",
++                        srcFileName);
++            } else {
++                printf("Successfully compiled the expression with warnings.\n");
++            }
++            break;
++        default:
++            printf("Compile failed with error: %s\n",
++                    pmrec_get_error_string(recCompileStatus));
++            status = EIO;
++    }
++    return status;
++}
++
++
++static int _pmcc_compile_rule(char* srcFileName, char* binFileName)
++{
++    int status                                   = 0;
++    char                   *srcCompileMessage_p  = NULL;
++    pmsrc_error_codes_t     srcCompileStatus     = 0;
++    pmsrc_module_options_t  srcCompileOptions;
++
++    memset(&srcCompileOptions, 0, sizeof(srcCompileOptions));
++    srcCompileOptions.debug_level         = pmsrc_debug_off_e;
++    srcCompileOptions.report_pad          = pmsrc_report_pad4_e;
++    srcCompileOptions.string_pad          = PMSRC_DEFAULT_STRING_PAD;
++    srcCompileOptions.report_cnst_sz      = pmsrc_report_cnst_sz4_e;
++    srcCompileOptions.allow_inconclusive  = pmsrc_conclusive_only_matches_e;
++    srcCompileOptions.warnings_are_errors = false;
++    srcCompileOptions.suppress_warnings   = false;
++    srcCompileStatus = pmsrc_compile(srcFileName,
++                                     binFileName,
++                                     &srcCompileOptions,
++                                     &srcCompileMessage_p);
++    if (NULL != srcCompileMessage_p)
++    {
++         printf("%s\n", srcCompileMessage_p);
++         free (srcCompileMessage_p);
++    }
++    switch (srcCompileStatus) {
++        case pmsrc_ok_e:
++            printf("Successfully compiled the \"%s\" rule file.\n", srcFileName);
++            break;
++        case pmsrc_warnings_e:
++            printf("Successfully compiled the \"%s\" rule file with warnings.\n",
++                    srcFileName);
++            break;
++        default:
++            printf("Compile failed with error: %s\n",
++            pmsrc_get_error_string(srcCompileStatus));
++            status = EIO;
++    }
++    return status;
++}
++
++
++static int _pmcc_pm_menu_add(char *cmd_p, void *context_p)
++{
++    pmcc_ctx_t*             pmcc_ctx             = context_p;
++    int                     status               = 0;
++    int32_t                 argc                 = 0;
++    char                   *argv_p[_PMCC_PARAM_MAX_NUM];
++    char                   *regex_string         = NULL;
++    char                    tmpSrcFileName[32]   = "/tmp/pmcc.src.XXXXXX";
++    char                    tmpBinFileName[32]   = "/tmp/pmcc.bin.XXXXXX";
++    char                   *srcFileName          = NULL;
++    char                   *binFileName          = NULL;
++    int                     tmpSrcFileFd         = 0;
++    int                     tmpBinFileFd         = 0;
++    cli_status_t            cliStatus            = cli_error_e;
++    enum {null_mode, regex_mode, rule_mode} mode = null_mode;
++    
++    char *cmdCopy_p = malloc(strlen(cmd_p) + 2);
++    if (cmdCopy_p == NULL)
++    {
++        printf("Failed to allocate memory for the duplicate string.\n");
++        return ENOMEM;
++    }
++    strcpy(cmdCopy_p, cmd_p);
++    strcat(cmdCopy_p, "\n"); /* Regex compiler need the linefeed */
++    
++    /* Process the command line parametes.  If the regular expression
++    * have a lot of space it can legally break the parameter number
++    * limit. */
++    cliStatus = cli_command_parse(cmd_p, &argc, argv_p, _PMCC_PARAM_MAX_NUM,
++                                    _pmcc_delimiters_sg);
++    if (cliStatus != cli_ok_e && cliStatus != cli_too_many_parameters_e) {
++        printf("%s\n", cli_error_string_get(cliStatus));
++        return EINVAL;
++    }
++#define _pmcc_add_check_para(_this_argc, _this_kw) \
++    {if (argc < _this_argc) { \
++         printf(_pmcc_too_few_params_sg, _this_kw); \
++         free(cmdCopy_p); return EINVAL; \
++    }}
++
++    _pmcc_add_check_para(2, _pmcc_add_cmd_sg);
++    
++    /* Process the help options. */
++    if ((argc >= 2) &&
++        ((strcmp(argv_p[1], _pmcc_qm_kw_sg)    == 0) ||
++        (strcmp(argv_p[1], _pmcc_h_kw_sg)     == 0) ||
++        (strcmp(argv_p[1], _pmcc_help_kw_sg)  == 0))) {
++        printf(
++                "Synopsis:"
++                "\n\t%s %s|%s"
++                "\n\t%s %s"
++                "\n\t%s %s %s %s <%s>"
++                "\n\t%s %s %s %s <%s> [%s <%s>]"
++                "\n\t%s %s %s <name> %s /<regex>/[options]"
++                "\n\t%s %s %s %s <%s>"
++                "\n\t%s %s %s %s <%s> [%s <%s>]\n",
++                _pmcc_add_cmd_sg, _pmcc_qm_kw_sg, _pmcc_h_kw_sg,
++                _pmcc_add_cmd_sg, _pmcc_help_kw_sg,
++                _pmcc_add_cmd_sg, _pmcc_regex_kw_sg, _pmcc_file_kw_sg,
++                _pmcc_binary_kw_sg, _pmcc_filename_kw_sg,
++                _pmcc_add_cmd_sg, _pmcc_regex_kw_sg, _pmcc_file_kw_sg,
++                _pmcc_source_kw_sg, _pmcc_filename_kw_sg,
++                _pmcc_binary_kw_sg, _pmcc_filename_kw_sg,
++                _pmcc_add_cmd_sg, _pmcc_regex_kw_sg, _pmcc_name_kw_sg,
++                _pmcc_exp_kw_sg,
++                _pmcc_add_cmd_sg, _pmcc_rule_kw_sg, _pmcc_file_kw_sg,
++                _pmcc_binary_kw_sg, _pmcc_filename_kw_sg,
++                _pmcc_add_cmd_sg, _pmcc_rule_kw_sg, _pmcc_file_kw_sg,
++                _pmcc_source_kw_sg, _pmcc_filename_kw_sg,
++                _pmcc_binary_kw_sg, _pmcc_filename_kw_sg
++        );
++        if (0 == strcmp(argv_p[1], _pmcc_help_kw_sg)) {
++            printf(
++                "Description:"
++                "\n\tThe %s command is used to add expressions or rules to the "
++                "\n\tlinker-loader DB.  The expression(s) or rule(s) to be added "
++                "\n\tcan be in the \"%s\", or yet to be compiled, format or "
++                "\n\tthey can be in the \"%s\", or already compiled, format.  "
++                "\n\tIf the entity to be added is presented to this command in the "
++                "\n\tsource format the entity is compiled first.  Only if the "
++                "\n\tcompilation finishes successfully, the compiled entity is "
++                "\n\tadded to the linker-loader DB.  If the entity to be added is "
++                "\n\tpresented in the \"%s\" format the entity is added to the "
++                "\n\tlinker-loader DB without any pre-processing.  Clearly, adding "
++                "\n\texpressions or rules that are in the \"%s\" format is faster."
++                "\n\tWhen adding \"%s\" formated entities from a file it is possible"
++                "\n\tto have the compiled results stored in a \"%s\" formated file.  "
++                "\n\tSpecify the optional \"%s\" keyword followed by a file name to"
++                "\n\tdo that."
++                "\n"
++                "\n\tThe following options are supported by the \"%s %s %s\" "
++                "\n\tcommand (after the expression i.e. /abc/[options]):"
++                "\n\t  %s=<value>"
++                "\n\t  %s"
++                "\n\t  %s=<value>"
++                "\n\t  i"
++                "\n\t  s"
++                "\n\t  m\n",
++                _pmcc_add_cmd_sg, _pmcc_source_kw_sg, _pmcc_binary_kw_sg,
++                _pmcc_binary_kw_sg,
++                _pmcc_binary_kw_sg, _pmcc_source_kw_sg, _pmcc_binary_kw_sg,
++                _pmcc_binary_kw_sg,
++                _pmcc_add_cmd_sg, _pmcc_regex_kw_sg, _pmcc_name_kw_sg,
++                _pmcc_tag_kw_sg,
++                _pmcc_report_kw_sg,
++                _pmcc_counter_kw_sg);
++            printf("Parameters:");
++            _PMCC_QM_STRING_DISPLAY();
++            printf("\n\t%s"
++                    "\n\t   The entity(ies) is presented or to be stored in the "
++                    "\n\t   binary, i.e., already compiled, format.",
++                    _pmcc_binary_kw_sg);
++            printf("\n\t%s"
++                    "\n\t   Specifies the counter to use while counting matches "
++                    "\n\t   of this expression.", _pmcc_counter_kw_sg);
++            printf("\n\t%s"
++                    "\n\t   Indicates that the following option contains the "
++                    "\n\t   regular expression to be added.  Note that the "
++                    "\n\t   regular expression option is delimited by the '/' "
++                    "\n\t   characters.", _pmcc_exp_kw_sg);
++            printf("\n\t%s"
++                    "\n\t   The entities to be added are to be read from a file.  "
++                    "\n\t   The name of the file follows this keyword.",
++                    _pmcc_file_kw_sg);
++            _PMCC_HSTRING_DISPLAY();
++            _PMCC_HELP_STRING_DISPLAY();
++            printf("\n\t%s"
++                    "\n\t   The entity to be added is defined by parameters "
++                    "\n\t   specified in this command (and not, e.g., in a file).",
++                    _pmcc_name_kw_sg);
++            printf("\n\t%s"
++                    "\n\t   The supported options are listed in the description "
++                    "\n\t   section of this help.  More details on each option "
++                    "\n\t   can be found in the parameters section of this help.",
++                    _pmcc_options_kw_sg);
++            printf("\n\t%s"
++                    "\n\t   The operation is to be performed on a regular "
++                    "\n\t   expression.", _pmcc_regex_kw_sg);
++            printf("\n\t%s"
++                    "\n\t   Disables the generation of a match "
++                    "\n\t   report for this expression.", _pmcc_report_kw_sg);
++            printf("\n\t%s"
++                    "\n\t   The operation is to be performed on a rule.",
++                    _pmcc_rule_kw_sg);
++            printf("\n\t%s"
++                    "\n\t   Associates the expression with a set of expressions.",
++                    _pmcc_set_kw_sg);
++            printf("\n\t%s"
++                    "\n\t   The entity(ies) is presented in the source, i.e., "
++                    "\n\t   not yet compiled, format.", _pmcc_source_kw_sg);
++            printf("\n\t%s"
++                    "\n\t   This value is included in the match report for this "
++                    "\n\t   expression.  The value can be used to identify an "
++                    "\n\t   expression or a group of expressions.  Note that this "
++                    "\n\t   value could be chosen to be unique for each "
++                    "\n\t   expressions in the DB.", _pmcc_tag_kw_sg);
++            printf("\n");
++            printf("Examples:");
++            printf("\n\t%s %s %s %s myexpressions.src",
++                    _pmcc_add_cmd_sg, _pmcc_regex_kw_sg, _pmcc_file_kw_sg,
++                    _pmcc_source_kw_sg);
++            printf("\n\t%s %s %s e1 exp /matchme/tag=0x01",
++                    _pmcc_add_cmd_sg, _pmcc_regex_kw_sg, _pmcc_name_kw_sg);
++            printf("\n\t%s %s %s %s regexes.bin",
++                    _pmcc_add_cmd_sg, _pmcc_regex_kw_sg, _pmcc_file_kw_sg,
++                    _pmcc_binary_kw_sg);
++            printf("\n\t%s %s %s %s /tmp/rules.src %s /tmp/rules.bin",
++                    _pmcc_add_cmd_sg, _pmcc_rule_kw_sg, _pmcc_file_kw_sg,
++                    _pmcc_source_kw_sg, _pmcc_binary_kw_sg);
++            printf("\n");
++        }
++        return 0;
++    }
++
++    if (0 == strcmp(argv_p[1], _pmcc_regex_kw_sg)) {
++        _pmcc_add_check_para(3, _pmcc_regex_kw_sg);
++        mode = regex_mode;
++    } else if (0 == strcmp(argv_p[1], _pmcc_rule_kw_sg)) {
++        _pmcc_add_check_para(3, _pmcc_rule_kw_sg);
++        mode = rule_mode;
++    } else {
++        printf(_pmcc_invalid_param_sg, argv_p[1], _pmcc_add_cmd_sg);
++        free(cmdCopy_p);
++        return EINVAL;
++    }
++
++    if (0 == strcmp(argv_p[2], _pmcc_file_kw_sg)) {
++        /* add regex|rule file ... */
++        _pmcc_add_check_para(4, _pmcc_file_kw_sg);
++        
++        if (0 == strcmp(argv_p[3], _pmcc_binary_kw_sg)) {
++            /* add regex|rule file binary ... */
++            _pmcc_add_check_para(5, _pmcc_binary_kw_sg);
++            binFileName = argv_p[4];
++        } else if (0 == strcmp(argv_p[3], _pmcc_source_kw_sg)) {
++            /* add regex|rule file source ... */
++            _pmcc_add_check_para(5, _pmcc_source_kw_sg);
++            srcFileName = argv_p[4];
++
++            if (argc > 5 && 0 == strcmp(argv_p[5], _pmcc_binary_kw_sg)) {
++                /* add regex|rule file source <name> binary ... */
++                _pmcc_add_check_para(7, _pmcc_binary_kw_sg);
++                binFileName = argv_p[6];
++            }
++        } else {
++            printf(_pmcc_invalid_param_sg, argv_p[3], _pmcc_file_kw_sg);
++            free(cmdCopy_p);
++            return EIO;
++        }
++    } else if (0 == strcmp(argv_p[2], _pmcc_name_kw_sg)) {
++        /* add regex name ... */
++        if (mode != regex_mode) {
++            printf(_pmcc_invalid_param_sg, argv_p[2], _pmcc_rule_kw_sg);
++            free(cmdCopy_p);
++            return EINVAL;
++        }
++        _pmcc_add_check_para(5, _pmcc_name_kw_sg);
++        if (0 != strcmp(argv_p[4], _pmcc_exp_kw_sg)) {
++            printf("Unrecognized keyword: \"%s\" Was expecting "
++                    "\"%s\".\n", argv_p[4], _pmcc_exp_kw_sg);
++            free(cmdCopy_p);
++            return EINVAL;
++        }
++        /* add regex name <name> exp ... */
++        if (argc < 6) {
++            printf("Found no expression after the \"%s\" "
++                    "keyword.\n", _pmcc_exp_kw_sg);
++            free(cmdCopy_p);
++            return EINVAL;
++        }
++        regex_string = cmdCopy_p +
++              ((char*)argv_p[4] - cmd_p) + strlen(_pmcc_exp_kw_sg);
++        
++        /* Store the regex string in a file since the compiler only accepts files. */
++        tmpSrcFileFd = mkstemp(tmpSrcFileName);
++        if (-1 == tmpSrcFileFd) {
++            /* We failed to create and open a unique source file. */
++            printf("Could not open a temporary source file.  \"%s\"\n", strerror(errno));
++            free(cmdCopy_p);
++            return EIO;
++        }
++        /* Regex name is in argv_p[3] */
++        if (write(tmpSrcFileFd, argv_p[3], strlen(argv_p[3])) !=
++            (ssize_t)(strlen(argv_p[3])) ||
++            write(tmpSrcFileFd, regex_string, strlen(regex_string)) !=
++            (ssize_t)(strlen(regex_string))) {
++            printf("Could not write to a temporary file \"%s\".\n", tmpSrcFileName);
++            close(tmpSrcFileFd);
++            free(cmdCopy_p);
++            return EIO;
++        }
++        close(tmpSrcFileFd);
++        srcFileName = tmpSrcFileName;
++    } else {
++        printf(_pmcc_invalid_param_sg, argv_p[2], _pmcc_regex_kw_sg);
++        free(cmdCopy_p);
++        return EIO;
++    }
++
++    free(cmdCopy_p);
++    cmdCopy_p = NULL;
++#undef _pmcc_add_check_para
++    
++    if (NULL == binFileName) {
++        /* No user specified binary file, make a temporary one */
++        tmpBinFileFd = mkstemp(tmpBinFileName);
++        if (-1 == tmpBinFileFd) {
++            /* We failed to create and open a unique binary file. */
++            printf("Could not open a temporary binary file.  \"%s\"\n", strerror(errno));
++            free(cmdCopy_p);
++            return EIO;
++        }
++        close(tmpBinFileFd);
++        binFileName = tmpBinFileName;
++    }
++
++    status = 0;
++
++    /* Ready to compile, then pass binary to PMCD */
++    if (regex_mode == mode) {
++        if (NULL != srcFileName) {
++            /* We need to compile the regexs first */
++            status = _pmcc_compile_regex(srcFileName, binFileName, pmcc_ctx, srcFileName == tmpSrcFileName);
++        }
++        if (0 == status) {
++            status = _pmcc_regexs_from_bin_file_add(pmcc_ctx, binFileName);
++        }
++    } else if (rule_mode == mode) {
++        if (NULL != srcFileName) {
++            /* We need to compile the rules first */
++            status = _pmcc_compile_rule(srcFileName, binFileName);
++        }
++        if (0 == status) {
++            status = _pmcc_rules_from_bin_file_add(pmcc_ctx, binFileName);
++        }
++    } else {
++        printf("Unexpected mode = %d\n", mode);
++        return EINVAL;
++    }
++    
++    /* Remove the temporary files. */
++    if (srcFileName == tmpSrcFileName) {
++        if (0 != remove(tmpSrcFileName)) {
++            printf("Failed to remove the temporary file "
++            "\"%s\".  \"%s\"\n", tmpSrcFileName, strerror(errno));
++        }
++    }
++    if (binFileName == tmpBinFileName) {
++        if (0 != remove(tmpBinFileName)) {
++            printf("Failed to remove the temporary file "
++            "\"%s\".  \"%s\"\n", tmpBinFileName, strerror(errno));
++        }
++    }
++
++    return status;
++}
++
++static int _pmcc_pm_menu_delete(char *cmd_p, void *context_p)
++{
++    pmcc_ctx_t*             pmcc_ctx             = context_p;
++    int                     status               = 0;
++    pmc_status_t            pmc_status           = pmc_ok_e;
++    int32_t                 argc                 = 0;
++    char                   *argv_p[_PMCC_PARAM_MAX_NUM];
++    cli_status_t            cliStatus            = cli_error_e;
++    enum {null_mode, regex_mode, rule_mode} mode = null_mode;
++    int                     i                    = 0;
++    uint32_t                set                  = 0;
++    uint32_t                subset               = 0xffff;
++    char                    tmpBinFileName[32]   = "/tmp/pmcc.bin.XXXXXX";
++    int                     tmpBinFileFd         = 0;
++
++    cliStatus = cli_command_parse(cmd_p, &argc, argv_p, _PMCC_PARAM_MAX_NUM,
++                                _pmcc_delimiters_sg);
++    if(cliStatus != cli_ok_e) {
++        printf("%s\n", cli_error_string_get(cliStatus));
++        return EINVAL;
++    }
++    
++    /* Process the help options. */
++    if ((argc >= 2) &&
++        ((0 == strcmp(argv_p[1], _pmcc_qm_kw_sg)) ||
++         (0 == strcmp(argv_p[1], _pmcc_h_kw_sg))  ||
++         (0 == strcmp(argv_p[1], _pmcc_help_kw_sg)))) {
++        status = 0;
++        printf(
++            "Synopsis:"
++            "\n\t%s %s|%s"
++            "\n\t%s %s"
++            "\n\t%s %s"
++            "\n\t%s %s|%s %s"
++            "\n\t%s %s|%s %s %s|%s %s"
++            "\n\t%s %s|%s %s <name1> [<name2> ... <name%u>]"
++            "\n\t%s %s %s <set>"
++            "\n\t%s %s %s <set> %s <subset_mask>\n",
++            _pmcc_delete_cmd_sg, _pmcc_qm_kw_sg, _pmcc_h_kw_sg,
++            _pmcc_delete_cmd_sg, _pmcc_help_kw_sg,
++            _pmcc_delete_cmd_sg, _pmcc_all_kw_sg,
++            _pmcc_delete_cmd_sg, _pmcc_exp_kw_sg, _pmcc_rule_kw_sg, _pmcc_all_kw_sg,
++            _pmcc_delete_cmd_sg, _pmcc_exp_kw_sg, _pmcc_rule_kw_sg, _pmcc_file_kw_sg, 
++              _pmcc_source_kw_sg, _pmcc_binary_kw_sg, _pmcc_filename_kw_sg,
++            _pmcc_delete_cmd_sg, _pmcc_exp_kw_sg, _pmcc_rule_kw_sg,
++            _pmcc_name_kw_sg, _PMCC_PARAM_MAX_NUM - 3,
++            _pmcc_delete_cmd_sg, _pmcc_exp_kw_sg, _pmcc_set_kw_sg,
++            _pmcc_delete_cmd_sg, _pmcc_exp_kw_sg, _pmcc_set_kw_sg, _pmcc_subsets_kw_sg);
++        if (0 == strcmp(argv_p[1], _pmcc_help_kw_sg)) {
++            printf(
++                "Description:"
++                "\n\tThe %s command is used to delete previously added expressions "
++                "\n\tor rules.  One or more expressions or rules can be deleted with "
++                "\n\tone command.  The number of the expression or rule names "
++                "\n\taccepted by the command is limited by the number of arguments "
++                "\n\tallowed in a CLI command."
++                "\n\t"
++                "\n\tNote that when a request had been made to delete all items of a "
++                "\n\tgiven kind and the operation completed with an error then, in "
++                "\n\tgeneral, only the items that could be deleted were deleted while"
++                "\n\tthe other items were not deleted.  For example, when deleting "
++                "\n\tall the expressions, the expressions that are part of rules "
++                "\n\tcannot be deleted.\n",
++                _pmcc_delete_cmd_sg);
++            printf("Parameters:");
++            _PMCC_QM_STRING_DISPLAY();
++            printf("\n\t%s"
++                    "\n\t   Indicates that the operation is to be performed on all "
++                    "\n\t   the items, e.g., all the expressions or all the rules.",
++                    _pmcc_all_kw_sg);
++            printf("\n\t%s"
++                    "\n\t   Indicates that the operation is to be performed on an"
++                    "\n\t   expression(s).", _pmcc_exp_kw_sg);
++            _PMCC_HSTRING_DISPLAY();
++            _PMCC_HELP_STRING_DISPLAY();
++            printf("\n\t%s"
++                    "\n\t   Indicates that the items are to be deleted by name.",
++                    _pmcc_name_kw_sg);
++            printf("\n\t%s"
++                    "\n\t   Indicates that the operation is to be performed on "
++                    "\n\t   a rule(s).",
++                    _pmcc_rule_kw_sg);
++            printf("\n");
++        }
++        return 0;
++    } else if (argc < 2) {
++        printf(_pmcc_too_few_params_sg, _pmcc_delete_cmd_sg);
++        return EINVAL;
++    }
++    
++    if (0 == strcmp(argv_p[1], _pmcc_exp_kw_sg)) {
++        if (argc < 3) {
++            printf(_pmcc_too_few_params_sg, _pmcc_exp_kw_sg);
++            return EINVAL;
++        }
++        mode = regex_mode;
++    } else if (0 == strcmp(argv_p[1], _pmcc_rule_kw_sg)) {
++        if (argc < 3) {
++            printf(_pmcc_too_few_params_sg, _pmcc_rule_kw_sg);
++            return EINVAL;
++        }
++        mode = rule_mode;
++    } else if (0 == strcmp(argv_p[1], _pmcc_all_kw_sg)){
++       pmc_status = _pmcc_delete_all(pmcc_ctx);
++       if (pmc_status != pmc_ok_e) return EINVAL;
++       return status;
++    } else {
++        printf(_pmcc_invalid_param_sg, argv_p[1], _pmcc_delete_cmd_sg);
++        return EINVAL;
++    }
++
++    if (0 == strcmp(argv_p[2], _pmcc_all_kw_sg)) {
++        switch (mode)
++        {
++            case regex_mode:
++                pmc_status = _pmcc_delete_all_expr(pmcc_ctx);
++                break;
++            case rule_mode:
++                pmc_status = _pmcc_delete_all_rule(pmcc_ctx);
++                break;
++            default:
++                return EINVAL;
++        }
++        if (pmc_status != pmc_ok_e) return EINVAL;
++        return status;
++    } else if (0 == strcmp(argv_p[2], _pmcc_file_kw_sg)) {
++        if (argc < 5) {
++            printf(_pmcc_too_few_params_sg, _pmcc_file_kw_sg);
++            return EINVAL;
++        }
++
++        switch (mode)
++        {
++            case regex_mode:
++                if (0 == strcmp(argv_p[3], _pmcc_binary_kw_sg)) {
++                    pmc_status = _pmcc_regexs_from_bin_file_del(pmcc_ctx, argv_p[4]);
++                } else if (0 == strcmp(argv_p[3], _pmcc_source_kw_sg)) {
++                    tmpBinFileFd = mkstemp(tmpBinFileName);
++                    if (-1 == tmpBinFileFd) {
++                        /* We failed to create and open a unique binary file. */
++                        printf("Could not open a temporary binary file.  \"%s\"\n", strerror(errno));
++                        return EIO;
++                    }
++                    close(tmpBinFileFd);
++                    status = _pmcc_compile_regex(argv_p[4], tmpBinFileName, pmcc_ctx, false);
++                    if(0 == status) {
++                        pmc_status = _pmcc_regexs_from_bin_file_del(pmcc_ctx, tmpBinFileName);
++                    } else {
++                        printf("Delete operation aborted due to compile error\n");
++                    }
++                    if (0 != remove(tmpBinFileName)) {
++                        printf("Failed to remove the temporary file "
++                        "\"%s\".  \"%s\"\n", tmpBinFileName, strerror(errno));
++                    }
++                } else {
++                    printf(_pmcc_invalid_param_sg, argv_p[3], _pmcc_file_kw_sg);
++                    return EINVAL;
++                }
++                break;
++            case rule_mode:
++                if (0 == strcmp(argv_p[3], _pmcc_binary_kw_sg)) {
++                    pmc_status = _pmcc_rules_from_bin_file_del(pmcc_ctx, argv_p[4]);
++                } else if (0 == strcmp(argv_p[3], _pmcc_source_kw_sg)) {
++                    tmpBinFileFd = mkstemp(tmpBinFileName);
++                    if (-1 == tmpBinFileFd) {
++                        /* We failed to create and open a unique binary file. */
++                        printf("Could not open a temporary binary file.  \"%s\"\n", strerror(errno));
++                        return EIO;
++                    }
++                    close(tmpBinFileFd);
++                    status = _pmcc_compile_rule(argv_p[4], tmpBinFileName);
++                    if(0 == status) {
++                        pmc_status = _pmcc_rules_from_bin_file_del(pmcc_ctx, tmpBinFileName);
++                    } else {
++                        printf("Delete operation aborted due to compile error\n");
++                    }
++                    if (0 != remove(tmpBinFileName)) {
++                        printf("Failed to remove the temporary file "
++                        "\"%s\".  \"%s\"\n", tmpBinFileName, strerror(errno));
++                    }
++                } else{
++                    printf(_pmcc_invalid_param_sg, argv_p[3], _pmcc_file_kw_sg);
++                    return EINVAL;
++                }
++                break;
++            default:
++                return EINVAL;
++        }
++        if (pmc_status != pmc_ok_e) return EINVAL;
++        return status;
++    } else if (0 == strcmp(argv_p[2], _pmcc_name_kw_sg)) {
++        if (argc < 4) {
++            printf(_pmcc_too_few_params_sg, _pmcc_name_kw_sg);
++            return EINVAL;
++        }
++        status = 0;
++        /* loop though all the names */
++        for (i = 3; i < argc; i++) {
++            switch (mode)
++            {
++                case regex_mode:
++                    pmc_status = _pmcc_delete_name_expr(argv_p[i], pmcc_ctx);
++                    break;
++                case rule_mode:
++                    pmc_status = _pmcc_delete_name_rule(argv_p[i], pmcc_ctx);
++                    break;
++                default:
++                    return EINVAL;
++            }
++        }
++        if (pmc_status != pmc_ok_e) return EINVAL;
++        return status;
++    } else if (0 == strcmp(argv_p[2], _pmcc_set_kw_sg) && mode == regex_mode) {
++        if (argc < 4) {
++            printf(_pmcc_too_few_params_sg, _pmcc_set_kw_sg);
++            return EINVAL;
++        }
++        errno = 0;
++        set = strtol(argv_p[3], NULL, 0);
++        if (0 != errno || set > 0xff) {
++            printf(_pmcc_invalid_param_sg, argv_p[3], argv_p[2]);
++            return EINVAL;
++        }
++        if (argc > 4) {
++            if (0 == strcmp(argv_p[4], _pmcc_subsets_kw_sg)) {
++                if (argc < 6) {
++                    printf(_pmcc_too_few_params_sg, _pmcc_subsets_kw_sg);
++                    return EINVAL;
++                }
++                errno = 0;
++                subset = strtol(argv_p[5], NULL, 0);
++                if (0 != errno || subset <= 0 || subset > 0xffff) {
++                    printf(_pmcc_invalid_param_sg, argv_p[5], argv_p[4]);
++                    return EINVAL;
++                }
++            } else {
++                printf(_pmcc_invalid_param_sg, argv_p[4], argv_p[2]);
++                return EINVAL;
++            }
++        }
++        pmc_status = _pmcc_del_expr_set(set, subset, pmcc_ctx);
++        if (pmc_status != pmc_ok_e) return EINVAL;
++        return status;
++    } else {
++        printf(_pmcc_invalid_param_sg, argv_p[2], argv_p[1]);
++        return EINVAL;
++    }
++
++    return status;
++}
++
++
++static int _pmcc_pm_menu_show(char *cmd_p, void *context_p)
++{
++    pmcc_ctx_t*             pmcc_ctx             = context_p;
++    int                     status               = 0;
++    int32_t                 argc                 = 0;
++    char                   *argv_p[_PMCC_PARAM_MAX_NUM];
++    cli_status_t            cliStatus            = cli_error_e;
++    char*                   log_msg_p            = NULL;
++    char*                   info_msg_p           = NULL;
++    pmc_expr_t             *pmc_expr             = NULL;
++    pmc_rule_t             *pmc_rule             = NULL;
++    pmc_status_t            pmc_status           = pmc_ok_e;
++    int                     count                = 0;
++    int                     i                    = 0;
++    uint32_t                last_index           = 0;
++    pmc_stats_t             pmc_stats;
++    enum {null_mode, all_mode, ll_mode, hw_mode} mode = null_mode;
++    
++    cliStatus = cli_command_parse(cmd_p, &argc, argv_p, _PMCC_PARAM_MAX_NUM,
++                                _pmcc_delimiters_sg);
++    if(cliStatus != cli_ok_e) {
++        printf("%s\n", cli_error_string_get(cliStatus));
++        return EINVAL;
++    }
++    /* Process the help options. */
++    if ((argc >= 2) &&
++        ((0 == strcmp(argv_p[1], _pmcc_qm_kw_sg)) ||
++         (0 == strcmp(argv_p[1], _pmcc_h_kw_sg))  ||
++         (0 == strcmp(argv_p[1], _pmcc_help_kw_sg)))) {
++        status = 0;
++        printf("Synopsis:"
++            "\n\t%s %s|%s"
++            "\n\t%s %s"
++            "\n\t%s %s %s"
++            "\n\t%s %s %s <expname> [<expname1> ... <expname%u>]"
++            "\n\t%s %s"
++            "\n\t%s %s %s"
++            "\n\t%s %s %s <rulename> [<rulename1> ... <rulename%u>]"
++            "\n\t%s %s [%s|%s|%s]"
++            "\n\t%s %s\n",
++            _pmcc_show_cmd_sg, _pmcc_qm_kw_sg, _pmcc_h_kw_sg,
++            _pmcc_show_cmd_sg, _pmcc_attributes_kw_sg,
++            _pmcc_show_cmd_sg, _pmcc_exp_kw_sg, _pmcc_all_kw_sg,
++
++            _pmcc_show_cmd_sg, _pmcc_exp_kw_sg, _pmcc_name_kw_sg,
++            _PMCC_PARAM_MAX_NUM - 3,
++
++            _pmcc_show_cmd_sg, _pmcc_help_kw_sg,
++            _pmcc_show_cmd_sg, _pmcc_rule_kw_sg, _pmcc_all_kw_sg,
++
++            _pmcc_show_cmd_sg, _pmcc_rule_kw_sg, _pmcc_name_kw_sg,
++            _PMCC_PARAM_MAX_NUM - 3,
++
++            _pmcc_show_cmd_sg, _pmcc_stats_kw_sg, _pmcc_ll_kw_sg, _pmcc_hw_kw_sg, _pmcc_all_kw_sg,
++            
++            _pmcc_show_cmd_sg, _pmcc_analysis_kw_sg
++        );
++        if (0 == strcmp(argv_p[1], _pmcc_help_kw_sg)) {
++            printf(
++                "Description:"
++                "\n\tThe %s command can be used to display the fields of the records "
++                "\n\tadded to the system, e.g., the expression or rule records.  "
++                "\n\tThe command can also be used to display version information of "
++                "\n\tsome S/W components, e.g., the Linker-Loader.\n",
++                _pmcc_show_cmd_sg);
++            printf( "Parameters:");
++            _PMCC_QM_STRING_DISPLAY();
++            printf( "\n\t%s"
++                    "\n\t   Displays the values of the attributes that can be set "
++                    "\n\t   using the %s command.", 
++                    _pmcc_attributes_kw_sg, _pmcc_set_cmd_sg);
++            printf( "\n\t%s"
++                    "\n\t   Displays the information about the specified "
++                    "\n\t   expression(s).  If no expression name is specified "
++                    "\n\t   the information about all expressions is displayed.", 
++                    _pmcc_exp_kw_sg);
++            printf( "\n\texpname"
++                    "\n\t   Name of an expression.");
++            _PMCC_HSTRING_DISPLAY();
++            _PMCC_HELP_STRING_DISPLAY();
++            printf( "\n\t%s"
++                    "\n\t   Displays the information about the specified rule(s).  "
++                    "\n\t   If no rule name is specified the information about all "
++                    "\n\t   rules is displayed.", _pmcc_rule_kw_sg);
++            printf( "\n\trulename"
++                    "\n\t   Name of a rule.");
++            printf( "\n\t%s"
++                    "\n\t   Displays the statistics for the indicated module.", 
++                    _pmcc_stats_kw_sg);
++            printf( "\n\t%s"
++                    "\n\t   Displays the analysis of added expressions. May take a few minutes.\n", 
++                    _pmcc_analysis_kw_sg);
++        }
++        return 0;
++    } else if (argc < 2) {
++        printf(_pmcc_too_few_params_sg, _pmcc_show_cmd_sg);
++        return EINVAL;
++    }
++
++    if (argc > 1 && 0 == strcmp(argv_p[1], _pmcc_exp_kw_sg)) {
++        if (argc < 3) {
++            printf(_pmcc_too_few_params_sg, _pmcc_exp_kw_sg);
++            return EINVAL;
++        }
++        if (0 == strcmp(argv_p[2], _pmcc_all_kw_sg)) {
++            /* Display all the expressions. */
++            count = 0;
++            pmc_status = pmc_query_expr_first(&pmc_expr, &info_msg_p);
++            while(1) {
++                if (info_msg_p != NULL) {
++                    if(pmc_status != pmc_ok_e && pmc_status != pmc_query_fail_e) printf("\n%s\n", info_msg_p);
++                    free(info_msg_p);
++                }
++                if (pmc_status != pmc_ok_e) {
++                    break;
++                }
++                if (pmc_expr != NULL && pmc_expr->name_p != NULL &&
++                    pmc_expr->expr_str_p != NULL && pmc_expr->opt_str_p != NULL) {
++                    count++;
++                    printf("name=%s  expression=\"%s\"  options=\"%s\"\n",
++                            pmc_expr->name_p, pmc_expr->expr_str_p, pmc_expr->opt_str_p);
++                    last_index = pmc_expr->db_index;
++                    pmc_free_expr(pmc_expr);
++                    pmc_status = pmc_query_expr_next(last_index, &pmc_expr, &info_msg_p);
++                } else {
++                    break;
++                }
++            }
++            printf("total number of expressions = %d\n", count);
++            return 0;
++        }
++        if (0 == strcmp(argv_p[2], _pmcc_name_kw_sg)) {
++            /* Show the specified expressions. */
++            if (argc < 4) {
++                printf(_pmcc_too_few_params_sg, _pmcc_name_kw_sg);
++                return EINVAL;
++            }
++            status = 0;
++            for (i = 3; i < argc; i++) {
++                pmc_status = pmc_query_expr_name(argv_p[i], &pmc_expr, &info_msg_p);
++                if (info_msg_p != NULL) {
++                    if(pmc_status != pmc_ok_e) printf("\n%s\n", info_msg_p);
++                    free(info_msg_p);
++                }
++                if (pmc_status != pmc_ok_e) {
++                    status = EINVAL;
++                    printf("Failed to find expression \"%s\"\n", argv_p[i]);
++                } else if (pmc_expr != NULL && pmc_expr->name_p != NULL &&
++                           pmc_expr->expr_str_p != NULL && pmc_expr->opt_str_p != NULL) {
++                    printf("name=%s  expression=\"%s\"  options=\"%s\"\n",
++                            pmc_expr->name_p, pmc_expr->expr_str_p, pmc_expr->opt_str_p);
++                    pmc_free_expr(pmc_expr);
++                }
++            }
++            return status;
++        }
++        printf(_pmcc_invalid_param_sg, argv_p[2], _pmcc_exp_kw_sg);
++        return EINVAL;
++    }
++    
++    
++    if (argc > 1 && 0 == strcmp(argv_p[1], _pmcc_rule_kw_sg)) {
++        if (argc < 3) {
++            printf(_pmcc_too_few_params_sg, _pmcc_rule_kw_sg);
++            return EINVAL;
++        }
++        if (0 == strcmp(argv_p[2], _pmcc_all_kw_sg)) {
++            /* Display all the rules. */
++            count = 0;
++            pmc_status = pmc_query_rule_first(&pmc_rule, &info_msg_p);
++            while(1) {
++                if(info_msg_p != NULL) {
++                    if(pmc_status != pmc_ok_e && pmc_status != pmc_query_fail_e) printf("\n%s\n", info_msg_p);
++                    free(info_msg_p);
++                }
++                if(pmc_status != pmc_ok_e) {
++                    break;
++                }
++                if (pmc_rule != NULL && pmc_rule->name_p != NULL &&
++                    pmc_rule->num_reactions > 0 && pmc_rule->expr_names_p != NULL) {
++                    count++;
++                    printf("name=%s  reactionNum=%"PRIu32" expNames: ",
++                            pmc_rule->name_p, pmc_rule->num_reactions);
++                    for (i = 0; i < (int)pmc_rule->num_reactions; i++) {
++                        printf(" %s", pmc_rule->expr_names_p[i]);
++                    }
++                    printf("\n");
++                    last_index = pmc_rule->db_index;
++                    pmc_free_rule(pmc_rule);
++                    pmc_status = pmc_query_rule_next(last_index, &pmc_rule, &info_msg_p);
++                } else {
++                    break;
++                }
++            }
++            printf("total number of rules = %d\n", count);
++            return 0;
++        }
++        if (0 == strcmp(argv_p[2], _pmcc_name_kw_sg)) {
++            /* Show the specified rules. */
++            if (argc < 4) {
++                printf(_pmcc_too_few_params_sg, _pmcc_name_kw_sg);
++                return EINVAL;
++            }
++            status = 0;
++            for (i = 3; i < argc; i++) {
++                pmc_status = pmc_query_rule_name(argv_p[i], &pmc_rule, &info_msg_p);
++                if(info_msg_p != NULL) {
++                    if(pmc_status != pmc_ok_e) printf("\n%s\n", info_msg_p);
++                    free(info_msg_p);
++                }
++                if(pmc_status != pmc_ok_e) {
++                    status = EINVAL;
++                    printf("Failed to find rule \"%s\"\n", argv_p[i]);
++                } else if(pmc_rule != NULL && pmc_rule->name_p != NULL &&
++                          pmc_rule->num_reactions > 0 && pmc_rule->expr_names_p != NULL) {
++                    count++;
++                    printf("name=%s  reactionNum=%"PRIu32" expNames: ",
++                            pmc_rule->name_p, pmc_rule->num_reactions);
++                    for (i = 0; i < (int)pmc_rule->num_reactions; i++) {
++                        printf(" %s", pmc_rule->expr_names_p[i]);
++                    }
++                    printf("\n");
++                    pmc_free_rule(pmc_rule);
++                }
++            }
++            return status;
++        }
++        printf(_pmcc_invalid_param_sg, argv_p[2], _pmcc_rule_kw_sg);
++        return EINVAL;
++    }
++    
++    if (0 == strcmp(argv_p[1], _pmcc_stats_kw_sg)) {
++        if (argc < 3) {
++            printf(_pmcc_too_few_params_sg, _pmcc_stats_kw_sg);
++            return EINVAL;
++        }
++
++        if(0 == strcmp(argv_p[2], _pmcc_ll_kw_sg)) {
++            mode = ll_mode;
++        } else if(0 == strcmp(argv_p[2], _pmcc_hw_kw_sg)) {
++            mode = hw_mode;
++        } else if(0 == strcmp(argv_p[2], _pmcc_all_kw_sg)) {
++            mode = all_mode;
++        } else {
++            printf(_pmcc_invalid_param_sg, argv_p[2], _pmcc_stats_kw_sg);
++            return EINVAL;
++        }
++        
++        pmc_status = pmc_stats_get(&pmc_stats, &info_msg_p);
++        if(info_msg_p != NULL) {
++            if(pmc_status != pmc_ok_e) printf("\n%s\n", info_msg_p);
++            free(info_msg_p);
++        }
++        if(pmc_status != pmc_ok_e) {
++            printf("Failed to get statistic\n");
++            return EINVAL;
++        }
++        
++#define _PMCC_NA_STATS ((uint64_t)0xffffffffffffffffLL)
++#define _PMCC_DISP_STATS(attrName, attrField)                     \
++  if ( pmc_stats.attrField == _PMCC_NA_STATS ) {                  \
++    printf("   %s :            N/A            N/A   "             \
++            "         N/A\n", attrName);                          \
++  } else {                                                        \
++    printf("   %s :   %12"PRIu64"   %12"PRIu64"   %12"PRIu64"\n", \
++            attrName,                                             \
++            pmc_stats.attrField,                                  \
++            pmcc_ctx->old_stats.attrField,                        \
++            pmc_stats.attrField -                                 \
++            pmcc_ctx->old_stats.attrField);                       \
++  }
++        if(mode == all_mode || mode == hw_mode) {
++                        status = 0;
++            /* Dump the current and aggregated counts here */
++            printf("The PM H/W Statistics:");
++            printf("                     Current");
++            printf("       Previous");
++            printf("          Delta\n");
++            _PMCC_DISP_STATS("PM Input Bytes           (KES)", 
++                            pm_input_bytes);
++            _PMCC_DISP_STATS("PM Output Report Bytes   (SRE)",
++                            pm_output_bytes);
++            _PMCC_DISP_STATS("PM Trigger 1B Hits       (KES)",
++                            pm_trigger_one_byte_hits);
++            _PMCC_DISP_STATS("PM Trigger 2B Hits       (KES)",
++                            pm_trigger_two_byte_hits);
++            _PMCC_DISP_STATS("PM Trigger Variable Hits (KES)",
++                            pm_trigger_variable_hits);
++            _PMCC_DISP_STATS("PM Trigger Special Hits  (KES)",
++                            pm_trigger_special_hits);
++            _PMCC_DISP_STATS("PM Confidence Stage Hits (KES)",
++                            pm_confidence_hits);
++            _PMCC_DISP_STATS("PM Matches               (DXE)",
++                            pm_matches);
++            _PMCC_DISP_STATS("PM SR Execution by DXE   (SRE)",
++                            pm_dxe_executions);
++            _PMCC_DISP_STATS("PM SR Execution by SUI   (SRE)",
++                            pm_end_of_sui_executions);
++            _PMCC_DISP_STATS("PM SUI With Matches      (DXE)",
++                            pm_sui_matching_patterns);
++            _PMCC_DISP_STATS("PM SUI With Reports      (SRE)",
++                            pm_sui_generating_reports);
++            _PMCC_DISP_STATS("PM Input SUIs            (KES)",
++                            pm_input_suis);
++            _PMCC_DISP_STATS("PM Matches with DRCC     (DXE)",
++                            pm_selected_matches);
++#ifdef PME_1_1
++            _PMCC_DISP_STATS("Deflate Input Bytes      (DFL)",
++                            df_input_bytes);
++            _PMCC_DISP_STATS("Deflate Output Bytes     (DFL)",
++                            df_output_bytes);
++            _PMCC_DISP_STATS("Deflate Work Units       (DFL)",
++                            df_decompressions);
++#endif
++        }
++        if(mode == all_mode || mode == ll_mode) {
++            printf("Expression and pattern statistics:\n");
++            printf("\tMaximum number of patterns               : "
++                    "%6u\n",  pmc_stats.patternMaxNum);
++            printf("\tNumber of configured special patterns    : "
++                    "%6u\n",  pmc_stats.specialPatternNum);
++            printf("\tNumber of configured one-byte patterns   : "
++                    "%6u\n",  pmc_stats.oneBytePatternNum);
++            printf("\tNumber of configured two-byte patterns   : "
++                    "%6u\n",  pmc_stats.twoBytePatternNum);
++            printf("\tNumber of configured variable patterns   : "
++                    "%6u\n",  pmc_stats.variablePatternNum);
++            printf("\tTotal number of configured patterns      : "
++                    "%6u\n",  pmc_stats.totalPatternNum);
++            printf("\tNumber of configured expressions         : "
++                    "%6u\n",  pmc_stats.expNum);
++            printf("\tSize of the variable trigger             : "
++                    "%6u [symbols]\n",  pmc_stats.variableTriggerSize);
++
++            printf("Rule and reaction statistics:\n");
++            printf("\tMaximum number of stateful rules         : "
++                    "%6u\n",  pmc_stats.statefulRuleMaxNum);
++            printf("\tMaximum number of stateless rules        : "
++                    "%6u\n",  pmc_stats.statelessRuleMaxNum);
++            printf("\tMaximum number of rules                  : "
++                    "%6u\n",  pmc_stats.totalRuleMaxNum);
++            printf("\tNumber of configured stateful rules      : "
++                    "%6u\n",  pmc_stats.statefulRuleNum);
++            printf("\tNumber of configured stateless rules     : "
++                    "%6u\n",  pmc_stats.statelessRuleNum);
++            printf("\tNumber of configured rules               : "
++                    "%6u\n",  pmc_stats.totalRuleNum);
++            printf("\tNumber of configured end of SUI reactions: "
++                    "%6u\n", pmc_stats.endOfSuiReactionNum);
++
++            printf("DXE/SRE table statistics:\n");
++            printf("\ttotal number of entries                  : "
++                    "%6u\n", pmc_stats.dxeSreEntryNum);
++            printf("\tnumber of base entries                   : "
++                    "%6u\n", pmc_stats.dxeSreBaseEntryNum);
++            printf("\tnumber of extension entries              : "
++                    "%6u\n", pmc_stats.dxeSreExtensionEntryNum);
++            printf("\tnumber of allocated extension entries    : "
++                    "%6u\n", pmc_stats.dxeSreAllocatedExtensionEntryNum);
++            printf("\tnumber of available extension entries    : "
++                    "%6u\n", pmc_stats.dxeSreAvailableExtensionEntryNum);
++            
++            printf("SRE context session statistics:\n");
++            printf("\tNumber of sessions                       : "
++                    "%6u\n",  pmc_stats.sreSessionCtxNum);
++            printf("\tSize of a single session                 : "
++                    "%6u [bytes]\n",  pmc_stats.sreSessionCtxSize);
++            printf("\tSize of the digest area                  : "
++                    "%6u [bytes]\n",  pmc_stats.sreSessionDigestSize);
++            printf("\tSize of the session flags area           : "
++                    "%6u [bytes]\n",  pmc_stats.sreSessionFlagsSize);
++            printf("\tSize of the context areas                : "
++                    "%6u [bytes]\n",  pmc_stats.sreSessionCtxAreaSize);
++            printf("\tSize of allocated context areas          : "
++                    "%6u [bytes]\n",  pmc_stats.sreAllocatedSessionCtxAreaSize);
++            printf("\tSize of available context areas          : "
++                    "%6u [bytes]\n",  pmc_stats.sreAvailableSessionCtxAreaSize);
++        }
++        memcpy(&(pmcc_ctx->old_stats), &pmc_stats, sizeof(pmc_stats));
++        return 0;
++    }
++    if (0 ==  strcmp(argv_p[1], _pmcc_attributes_kw_sg)) {
++        return 0;
++    }
++
++    if (0 ==  strcmp(argv_p[1], _pmcc_analysis_kw_sg)) {
++        status = 0;
++        printf("This may take a few minutes...\n");
++        pmc_status = pmc_analysis(&log_msg_p, &info_msg_p);
++        if(info_msg_p != NULL) {
++            if(pmc_status != pmc_ok_e) printf("\n%s\n", info_msg_p);
++            free(info_msg_p);
++        }
++        if(pmc_status != pmc_ok_e) {
++            status = EINVAL;
++        } else {
++            if(log_msg_p != NULL) {
++                printf("\n%s\n", log_msg_p);
++                free(log_msg_p);
++            }
++        }
++
++        return status;
++    }
++    
++    
++    printf(_pmcc_invalid_param_sg, argv_p[1], _pmcc_show_cmd_sg);
++    return EINVAL;
++}
++
++
++static int _pmcc_pm_menu_set(char *cmd_p, void *context_p)
++{
++    pmcc_ctx_t*             pmcc_ctx             = context_p;
++    int                     status               = 0;
++    int32_t                 argc                 = 0;
++    char                   *argv_p[_PMCC_PARAM_MAX_NUM];
++    cli_status_t            cliStatus            = cli_error_e;
++    char*                   info_msg_p           = NULL;
++    pmc_status_t            pmc_status           = pmc_ok_e;
++    uint32_t                value                = 0;
++
++    pmcc_ctx = pmcc_ctx;
++    cliStatus = cli_command_parse(cmd_p, &argc, argv_p, _PMCC_PARAM_MAX_NUM,
++                                _pmcc_delimiters_sg);
++    if(cliStatus != cli_ok_e) {
++        printf("%s\n", cli_error_string_get(cliStatus));
++        return EINVAL;
++    }
++    /* Process the help options. */
++    if ((argc >= 2) &&
++        ((0 == strcmp(argv_p[1], _pmcc_qm_kw_sg)) ||
++         (0 == strcmp(argv_p[1], _pmcc_h_kw_sg))  ||
++         (0 == strcmp(argv_p[1], _pmcc_help_kw_sg)))) {
++        status = 0;
++        printf("Synopsis:"
++            "\n\t%s %s|%s"
++            "\n\t%s %s"
++            "\n\t%s %s %s\n",
++            _pmcc_set_cmd_sg, _pmcc_qm_kw_sg, _pmcc_h_kw_sg,
++            _pmcc_set_cmd_sg, _pmcc_help_kw_sg,
++            _pmcc_set_cmd_sg, _pmcc_attribute_kw_sg, _pmcc_variablesize_kw_sg
++        );
++        if (0 == strcmp(argv_p[1], _pmcc_help_kw_sg)) {
++            printf(
++                "Description:"
++                "\n\tThe %s command can be used to alter values of the modifiable "
++                "\n\tparameters in the DB.\n", _pmcc_set_cmd_sg);
++            printf( "Parameters:");
++            _PMCC_QM_STRING_DISPLAY();
++            _PMCC_HSTRING_DISPLAY();
++            _PMCC_HELP_STRING_DISPLAY();
++
++            printf("\n\t%s"
++              "\n\t   Indicates that the value of the LL variable trigger "
++              "\n\t   size is to be set.", _pmcc_variablesize_kw_sg);
++            printf("\n");
++        }
++        return 0;
++    } else if (argc < 2) {
++        printf(_pmcc_too_few_params_sg, _pmcc_set_cmd_sg);
++        return EINVAL;
++    }
++    
++    status = 0;
++    if (argc > 1 && 0 == strcmp(argv_p[1], _pmcc_attribute_kw_sg)) {
++        if (argc < 4) {
++            printf(_pmcc_too_few_params_sg, _pmcc_attribute_kw_sg);
++            return EINVAL;
++        }
++        if (0 == strcmp(argv_p[2], _pmcc_variablesize_kw_sg)) {
++            if(!cli_uint32get(argv_p[3], &value)) {
++                printf( "Variable trigger size value of \"%s\" is "
++                  "invalid.\n", argv_p[3]);
++                return EINVAL;
++            }
++            pmc_status = pmc_set_var_trig_size(value, &info_msg_p);
++            if (info_msg_p != NULL) {
++                if(pmc_status != pmc_ok_e) printf("\n%s\n", info_msg_p);
++                free(info_msg_p);
++            }
++            if(pmc_status != pmc_ok_e) {
++                status = EINVAL;
++                printf("Failed to set the variable trigger size.\n");
++            }
++            return status;
++        } else {
++            printf(_pmcc_invalid_param_sg, argv_p[2], _pmcc_attribute_kw_sg);
++            return EINVAL;
++        }
++    }
++
++    printf(_pmcc_invalid_param_sg, argv_p[1], _pmcc_set_cmd_sg);
++    return EINVAL;
++}
++
++
++static int _pmcc_pm_menu_commit(char *cmd_p, void *context_p)
++{
++    pmcc_ctx_t*             pmcc_ctx             = context_p;
++    int                     status               = 0;
++    int32_t                 argc                 = 0;
++    char                   *argv_p[_PMCC_PARAM_MAX_NUM];
++    cli_status_t            cliStatus            = cli_error_e;
++    
++    pmcc_ctx = pmcc_ctx;
++    cliStatus = cli_command_parse(cmd_p, &argc, argv_p, _PMCC_PARAM_MAX_NUM,
++                                _pmcc_delimiters_sg);
++    if(cliStatus != cli_ok_e) {
++        printf("%s\n", cli_error_string_get(cliStatus));
++        return EINVAL;
++    }
++
++    /* Process the help options. */
++    if ((argc >= 2) &&
++        ((0 == strcmp(argv_p[1], _pmcc_qm_kw_sg)) ||
++         (0 == strcmp(argv_p[1], _pmcc_h_kw_sg))  ||
++         (0 == strcmp(argv_p[1], _pmcc_help_kw_sg)))) {
++        status = 0;
++        printf( "Synopsis:"
++                "\n\t%s %s|%s"
++                "\n\t%s %s"
++                "\n\t%s\n",
++                _pmcc_commit_cmd_sg, _pmcc_qm_kw_sg, _pmcc_h_kw_sg,
++                _pmcc_commit_cmd_sg, _pmcc_help_kw_sg,
++                _pmcc_commit_cmd_sg);
++        if (0 == strcmp(argv_p[1], _pmcc_help_kw_sg)) {
++            printf(
++                "Description:"
++                "\n\tThe %s command is used to configure the Pattern Matching "
++                "\n\t(PM) H/W with the expressions that have been added to the "
++                "\n\tsystem.  It is important to know that only the first,"
++                "\n\tor initial, invocation of the %s command results in an"
++                "\n\toptimal distribution of the pattern records in the PM H/W.  "
++                "\n\tSuch optimization offers an increased performance of the "
++                "\n\tPM H/W.  The second and subsequent, or incremental, "
++                "\n\tinvocations of the %s command cannot perform such "
++                "\n\toptimization.  Therefore, it is encouraged to make the first "
++                "\n\tcommit with as final a state of the expression database as "
++                "\n\tpossible. \n",
++                _pmcc_commit_cmd_sg, _pmcc_commit_cmd_sg, _pmcc_commit_cmd_sg);
++            printf("Parameters:" "\n\tN/A");
++            _PMCC_QM_STRING_DISPLAY();
++            _PMCC_HSTRING_DISPLAY();
++            _PMCC_HELP_STRING_DISPLAY();
++            printf("\n");
++        }
++        return 0;
++    } else if (argc >= 2) {
++        printf(_pmcc_invalid_param_sg, argv_p[1], _pmcc_commit_cmd_sg);
++        return EINVAL;
++    }
++    
++    // Actual commit
++    status = _pmcc_commit();
++    
++    return status;
++}
++
++
++static int _pmcc_module_init(pmcc_ctx_t* pmcc_ctx)
++{
++    uint32_t cliMenuOption = CLI_MENU_NO_OPTION;
++    cli_status_t cliStatus = cli_error_e;
++
++    if (pmcc_ctx->exit_on_error) {
++        cliMenuOption = CLI_MENU_EXIT_ON_ERROR_OPTION;
++    }
++    
++    /* Create the PMCC CLI menus and register the command handlers. */
++    cliStatus = cli_create_menu("pmcc", "PMCC main menu", &(pmcc_ctx->cliHandle),
++                                HANDLE_NULL, cliMenuOption);
++    if ((HANDLE_NULL == pmcc_ctx->cliHandle) || (cliStatus != cli_ok_e)) {
++        printf( "Failed to create the PMCC main menu.  %s\n",
++                cli_error_string_get(cliStatus));
++        return(-1);
++    }
++
++    cliStatus = cli_register_cmd(pmcc_ctx->cliHandle, _pmcc_add_cmd_sg,
++                               "add expressions or rules",
++                               pmcc_ctx, _pmcc_pm_menu_add,
++                               CLI_SHOW_EXEC_TIME_CMD_FLAG);
++    if (cli_ok_e != cliStatus) return -1;
++    
++    cliStatus = cli_register_cmd(pmcc_ctx->cliHandle, _pmcc_commit_cmd_sg,
++                               "commit previously added expressions and rules",
++                               pmcc_ctx, _pmcc_pm_menu_commit,
++                               CLI_SHOW_EXEC_TIME_CMD_FLAG);
++    if (cli_ok_e != cliStatus) return -1;
++
++    cliStatus = cli_register_cmd(pmcc_ctx->cliHandle, _pmcc_delete_cmd_sg,
++                               "delete previously added expressions and rules",
++                               pmcc_ctx, _pmcc_pm_menu_delete,
++                               CLI_NO_CMD_FLAG);
++    if (cli_ok_e != cliStatus) return -1;
++
++    cliStatus = cli_register_cmd(pmcc_ctx->cliHandle, _pmcc_show_cmd_sg,
++                               "display expressions, rules, etc.",
++                               pmcc_ctx, _pmcc_pm_menu_show,
++                               CLI_NO_CMD_FLAG);
++    if (cli_ok_e != cliStatus) return -1;
++
++    cliStatus = cli_register_cmd(pmcc_ctx->cliHandle, _pmcc_set_cmd_sg,
++                               "set modifiable parameters",
++                               pmcc_ctx, _pmcc_pm_menu_set,
++                               CLI_NO_CMD_FLAG);
++    if (cli_ok_e != cliStatus) return -1;
++    
++    return 0;
++}
++
++
++int main(int argc, char *argv[])
++{
++    int status;
++    pmcc_ctx_t pmcc_ctx;
++    char *homeDir_p = getenv("HOME");
++    char *historyFile_p = NULL;
++    char *historyFileName_p = ".pmcchistory";
++    
++    enum {
++        pmcc_option_help_e=128,
++        pmcc_option_auto_commit_e,
++        pmcc_option_exit_on_error_e,
++        pmcc_option_8572rev1_0_e
++    };
++
++    static struct option longOptions[] = {
++        {"help",          no_argument,   NULL, pmcc_option_help_e},
++        {"auto-commit",   no_argument,   NULL, pmcc_option_auto_commit_e},
++        {"exit-on-error", no_argument,   NULL, pmcc_option_exit_on_error_e},
++#ifdef PME_1_1
++        {"8572rev1.0",    no_argument,   NULL, pmcc_option_8572rev1_0_e},
++#endif
++        {NULL, no_argument, NULL, no_argument}
++    };
++    int option = 0;
++
++    _pmc_log_stream_pg = stdout;
++
++    pmcc_ctx.auto_commit = false;
++    pmcc_ctx.exit_on_error = false;
++    pmcc_ctx.option8572rev1_0 = false;
++    memset(&pmcc_ctx.old_stats, 0, sizeof(pmcc_ctx.old_stats));
++    
++    while (true) {
++        option = getopt_long(argc, argv, "-hae", longOptions, NULL);
++        if ( option <= 0 ) break;
++        
++        switch(option) {
++            case 1:
++                /* Get 1 when one of the parameters is not defined.  */
++                printf("Unknown option \"%s\"\n",optarg);
++                return 1;
++                
++            case '?':
++                /* getopt_long already printed an error msg. */
++                return 1;
++                
++            case pmcc_option_help_e:
++            case 'h':
++                _pmcc_print_help();
++                return 0;
++                
++            case pmcc_option_auto_commit_e:
++            case 'a':
++                pmcc_ctx.auto_commit = true;
++                break;
++
++            case pmcc_option_exit_on_error_e:
++            case 'e':
++                pmcc_ctx.exit_on_error = true;
++                break;
++                
++            case pmcc_option_8572rev1_0_e:
++                pmcc_ctx.option8572rev1_0 = true;
++                break;
++        }
++    }
++
++    if (_pmcc_module_init(&pmcc_ctx)) {
++        return 1;
++    }
++
++    if(homeDir_p == NULL) {
++        historyFile_p = strdup(historyFileName_p);
++    } else {
++        historyFile_p = malloc(strlen(homeDir_p) + strlen(historyFileName_p) + 2);
++        if(historyFile_p != NULL) {
++            strcpy(historyFile_p, homeDir_p);
++            strcat(historyFile_p, "/");
++            strcat(historyFile_p, historyFileName_p);
++        }
++    }
++    
++    status = cli_start(pmcc_ctx.cliHandle, historyFile_p);
++
++    if(historyFile_p != NULL) {
++        free(historyFile_p);
++    }
++    
++    return status;
++}
+-- 
+1.6.0
+

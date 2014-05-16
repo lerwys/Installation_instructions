@@ -1,0 +1,52 @@
+From b47f16b374402d7650f6684578301bfd3039706f Mon Sep 17 00:00:00 2001
+From: Paul Barrette <paul.barrette@freescale.com>
+Date: Thu, 3 Sep 2009 15:54:53 -0400
+Subject: [PATCH] Changes to support udev and sysfs.
+ This patch simplifies the variable location of /sys members.
+ Instead of hard coding the path in /sys, use udev to symlink
+ the device into /dev.  Then reference this /dev path in userspace.
+
+
+Signed-off-by: Paul Barrette <paul.barrette@freescale.com>
+---
+ controlInterface/pmci.c           |    2 +-
+ ltib_supp/06-fsl-pme-device.rules |   14 ++++++++++++++
+ 2 files changed, 15 insertions(+), 1 deletions(-)
+ create mode 100644 ltib_supp/06-fsl-pme-device.rules
+
+diff --git a/controlInterface/pmci.c b/controlInterface/pmci.c
+index 735bbd1..fbac88e 100644
+--- a/controlInterface/pmci.c
++++ b/controlInterface/pmci.c
+@@ -118,7 +118,7 @@
+ #define PMCI_ATTR_PATTERN_RANGE_INDEX   "pattern_range_counter_idx"
+ #define PMCI_ATTR_PATTERN_RANGE_MASK    "pattern_range_counter_mask"
+ 
+-#define default_pme_device_path "/sys/bus/of_platform/drivers/of-fsl-pme/%s"
++#define default_pme_device_path "/dev/fsl-pme-dev/%s"
+ 
+ static FILE *PMCI_PARAM_FILE(const char *n)
+ {
+diff --git a/ltib_supp/06-fsl-pme-device.rules b/ltib_supp/06-fsl-pme-device.rules
+new file mode 100644
+index 0000000..82cab28
+--- /dev/null
++++ b/ltib_supp/06-fsl-pme-device.rules
+@@ -0,0 +1,14 @@
++# ***********************< BEGIN COPYRIGHT >************************
++#  
++#   Copyright 2009, Freescale Semiconductor, Inc.  All Rights Reserved.
++#  
++#    NOTICE: The information contained in this file is proprietary 
++#    to Freescale Semiconductor and is being made available to 
++#    Freescale's customers under a specific license agreement. 
++#    Use or disclosure of this information is permissible only 
++#    under the terms of the license agreement. 
++#  
++# 
++# ***********************< END COPYRIGHT >**************************
++ACTION=="add", KERNEL=="*.pme", SUBSYSTEM=="of_platform" , SYSFS{name}=="pme", PROGRAM="/bin/ln -s $sys$DEVPATH /dev/fsl-pme-dev"
++ACTION=="remove", KERNEL=="*.pme", SUBSYSTEM=="of_platform" , SYSFS{name}=="pme", PROGRAM="/bin/rm /dev/fsl-pme-dev"
+-- 
+1.6.0
+

@@ -1,0 +1,154 @@
+From 26b221f68a408504e6d44d896063b64b9b2960d0 Mon Sep 17 00:00:00 2001
+From: Paul Barrette <paul.barrette@freescale.com>
+Date: Thu, 15 Oct 2009 16:43:50 -0400
+Subject: [PATCH] Build cleanup.
+ 1. LEX -> FLEX so that it is picked up properly from the
+    main Makefile.
+ 2. Added rules to allow ARCH and CROSS_COMPILE to be pulled from the
+    env for ltib.
+ 3. CROSS_COMPILE check for powerpc.
+    Ltib requires pkgs to take CROSS_COMPILE from the env.
+    However, at OTC our standalone builds have CROSS_COMPILE set to
+    powerpc-linux-gnu- by default.  This doesn't work for x86 builds.
+    This patch adds a check for x86 rules to see if the CROSS_COMPILE
+    var contains powerpc.  If so, it overrides it.
+ 4. Added x86_64 to the distclean rule.
+ 5. Added INSTALL_DAEMONS rule to install pmcd to the sbin dir.
+ 6. Added pmcc to the INSTALL_APPS.
+ 7. Added PME_2_0 to the defines list.
+
+
+Signed-off-by: Paul Barrette <paul.barrette@freescale.com>
+---
+ Makefile               |    4 +++-
+ rules/Makefile.default |    2 +-
+ rules/Makefile.i686    |   15 +++++++++++----
+ rules/Makefile.powerpc |    9 +++++----
+ rules/Makefile.x86_64  |   14 ++++++++++----
+ 5 files changed, 30 insertions(+), 14 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index f721db6..6223dd2 100644
+--- a/Makefile
++++ b/Makefile
+@@ -71,7 +71,7 @@ endif
+ # local vars
+ # add -D<defname>
+ # DEFINES, LIB_PATH, INC_PATH are set in the rules/Makefile.<arch> files.
+-DEFINES  :=$($(ARCH)_DEFINES)
++DEFINES  := $(addprefix -D,$(ARCH_SPEC_DEFINES))
+ LIB_PATH := $(addprefix -L,$(LIB_DIR)) $(addprefix -L,$($(ARCH)_LIB_PATH))
+ LIB_PATH += -L$(SYS_PATH)/lib_$(ARCH)
+ INC_PATH := -I$(TOP_LEVEL)/include -I. $(addprefix -I,$($(ARCH)_INC_PATH))
+@@ -115,6 +115,7 @@ clean:$(DIRS)
+ distclean:
+ 	$(Q)$(MAKE) ARCH=powerpc clean
+ 	$(Q)$(MAKE) ARCH=i686 clean
++	$(Q)$(MAKE) ARCH=x86_64 clean
+ 
+ mkdirs:
+ 	$(Q)test -e $(BIN_DIR) || mkdir -p $(BIN_DIR)
+@@ -144,6 +145,7 @@ ifdef INSTALL_DIR
+ 	$(Q)test -e  $(INSTALL_DIR)/bin|| (echo "Error: dir does not exist:   $(INSTALL_DIR)/bin" && exit 1)
+ 	$(Q)echo " [INSTALL] $(INSTALL_APPS) $(INSTALL_LIBS) --> $(INSTALL_DIR)"
+ 	$(Q)$(foreach a,$(INSTALL_APPS),$(shell cp bin_$(ARCH)/$(a) $(INSTALL_DIR)/bin))
++	$(Q)$(foreach a,$(INSTALL_DAEMONS),$(shell cp bin_$(ARCH)/$(a) $(INSTALL_DIR)/sbin))
+ 	$(Q)$(foreach l,$(INSTALL_LIBS),$(shell cp lib_$(ARCH)/$(l) $(INSTALL_DIR)/lib))
+ else
+ 	$(Q)$(error "Error: INSTALL_DIR was not defined.")
+diff --git a/rules/Makefile.default b/rules/Makefile.default
+index 950d8b6..ae69c7f 100644
+--- a/rules/Makefile.default
++++ b/rules/Makefile.default
+@@ -110,7 +110,7 @@ $(foreach app,$(APPS),$(APP_DIR)/$(app)):$(foreach app,$(APPS),$(addprefix $(OBJ
+ #	$(LEX) -P$(LEX_PREFIX) $<
+ $(foreach x,$(LEX_PREFIX),lex.$(x).c):$(foreach x,$(LEX_PREFIX),$($(x)_scan_file))
+ 	$(Q)echo " [LX] $@"
+-	$(Q)$(LEX) -P$(patsubst lex.%.c,%,$@)  $($(patsubst lex.%.c,%,$@)_scan_file)
++	$(Q)$(FLEX) -P$(patsubst lex.%.c,%,$@)  $($(patsubst lex.%.c,%,$@)_scan_file)
+ 
+ # ----=[ default .o rule ]=-----
+ obj_dir:
+diff --git a/rules/Makefile.i686 b/rules/Makefile.i686
+index 4471f9a..946b128 100644
+--- a/rules/Makefile.i686
++++ b/rules/Makefile.i686
+@@ -13,12 +13,19 @@
+ #
+ # all gcc calls and rules are done in the main makefile.  Here we just specify
+ # arch specific settings.
+-ARCH             :=i686
+-CROSS_COMPILE    :=
+-GCC_VERS         :=
++ARCH             ?=i686
++
++# note: ltib pushes cross compile into the env and we have to pic it up there.
++# However, local builds have cross compile defined in the env and we don't want
++# to specify it on the CLI.  This check prevents any unwanted ppc
++# cross prefix.
++ifeq (1,$(shell echo $(CROSS_COMPILE)|grep -c powerpc))
++  override CROSS_COMPILE:=
++endif
++CROSS_COMPILE    ?=
+ ARCH_SPEC_CFLAGS :=
+ ARCH_SPEC_LDFLAGS:=
+-GCC_VERS         :=
++GCC_VERS         :=/_TOOLS_/dist/gnu-gcc-4.1.1/i686-pc-linux2.4
+ SUPP_LIBS        :=
+ $(ARCH)_LIB_PATH :=$(SUPP_LIBS)/lib
+ $(ARCH)_INC_PATH :=$(SUPP_LIBS)/all/include
+diff --git a/rules/Makefile.powerpc b/rules/Makefile.powerpc
+index e50e31e..80caef3 100644
+--- a/rules/Makefile.powerpc
++++ b/rules/Makefile.powerpc
+@@ -13,15 +13,16 @@
+ #
+ # all gcc calls and rules are done in the main makefile.  Here we just specify
+ # arch specific settings.
+-ARCH             :=powerpc
+-CROSS_COMPILE    :=powerpc-linux-gnu-
++ARCH             ?=powerpc
++CROSS_COMPILE    ?=powerpc-linux-gnu-
+ GCC_VERS         :=/_TOOLS_/dist/gcc-4.3.74-eglibc-2.8.74
+ ARCH_SPEC_CFLAGS :=
+ ARCH_SPEC_LDFLAGS:=
+-$(ARCH)_DEFINES  :=
++ARCH_SPEC_DEFINES:=PME_2_0
+ 
+ # used to define which apps to install with LTIB
+-export INSTALL_APPS     :=pmm pmrec pmsrc pm_scan_demo
++export INSTALL_APPS     :=pmm pmrec pmsrc pm_scan_demo pmcc
++export INSTALL_DAEMONS  :=pmcd
+ export INSTALL_LIBS     :=
+ 
+ #
+diff --git a/rules/Makefile.x86_64 b/rules/Makefile.x86_64
+index ed384bd..ecf6b26 100644
+--- a/rules/Makefile.x86_64
++++ b/rules/Makefile.x86_64
+@@ -13,12 +13,18 @@
+ #
+ # all gcc calls and rules are done in the main makefile.  Here we just specify
+ # arch specific settings.
+-ARCH             :=x86_64
+-CROSS_COMPILE    :=
+-GCC_VERS         :=
++ARCH             ?=x86_64
++# note: ltib pushes cross compile into the env and we have to pic it up there.
++# However, local builds have cross compile defined in the env and we don't want
++# to specify it on the CLI.  This check prevents any unwanted ppc
++# cross prefix.
++ifeq (1,$(shell echo $(CROSS_COMPILE)|grep -c powerpc))
++  override CROSS_COMPILE:=
++endif
++CROSS_COMPILE    ?=
+ ARCH_SPEC_CFLAGS :=
+ ARCH_SPEC_LDFLAGS:=
+-GCC_VERS         :=
++GCC_VERS         :=/_TOOLS_/dist/gnu-gcc-4.1.1/x86_64-pc-linux2.4
+ SUPP_LIBS        :=
+ $(ARCH)_LIB_PATH :=$(SUPP_LIBS)/lib
+ $(ARCH)_INC_PATH :=$(SUPP_LIBS)/all/include
+-- 
+1.6.0
+
