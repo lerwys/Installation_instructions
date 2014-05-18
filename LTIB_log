@@ -106,8 +106,8 @@ LTIB Vadatech Installation Instructions
 
   They can be found in http://www.freescale.com/webapp/sps/site/overview.jsp?code=CW_BSP_PPC_85XX
 
-  -> If the pkg is found just copy all the related packages to
-  /opt/freescale/pkgs
+  -> If the package is found just copy all the related 
+     files to /opt/freescale/pkgs folder
 
 -------------------------------------------------------
 Installing all patches:
