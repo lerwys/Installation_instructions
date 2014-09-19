@@ -1,0 +1,57 @@
+Source: http://askubuntu.com/questions/201505/how-do-i-install-and-run-a-tftp-server
+-------------------------------------------------------
+Requirements: xinetd tftpd tftp
+
+0 - sudo apt-get install xinetd tftpd tftp
+
+--------------------------------------------------------
+TFTP Installation Instructions:
+
+  -> Create /etc/xinetd.d/tftp and put this entry 
+
+1 - sudo vim /etc/xinetd.d/tftp
+
+    service tftp
+    {
+    protocol        = udp
+    port            = 69
+    socket_type     = dgram
+    wait            = yes
+    user            = nobody
+    server          = /usr/sbin/in.tftpd
+    server_args     = /tftpboot
+    disable         = no
+    }
+
+  -> Create a folder /tftpboot this should match whatever you gave 
+  in server_args. Most likely it will be tftpboot.
+
+2 - sudo mkdir /tftpboot
+3 - sudo chmod -R 777 /tftpboot
+4 - sudo chown -R nobody /tftpboot
+
+  -> Restart the xinetd serviceo
+
+5 - sudo /etc/init.d/xinetd restart
+
+  -> Now our tftp server is up and running
+
+--------------------------------------------------------
+TFTP Testing:
+
+  -> Create a file named test with some content in /tftpboot 
+  path of the tftp server
+
+  -> Obtain the ip address of the tftp server using ifconfig 
+  command
+
+  -> Now in some other system follow the following steps.
+
+tftp <ipaddr>
+tftp> get test
+
+Sent 159 bytes in 0.0 seconds
+
+tftp> quit
+
+cat test
