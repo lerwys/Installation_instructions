@@ -3,7 +3,7 @@ Requirements: readline make gcc
 
 0 - sudo apt-get install libreadline6 libreadline6-dev make libxt-dev libxmu-headers libmotif-dev libgif-dev libgif4 libpng12-0 libpng12-0-dev libxp-dev libxtst-dev libxmu-dev
 
-	-> If any error is encountered due to a missing file try to issue the following command: 
+	-> If any error is encountered due to a missing file try to issue the following command:
 
 0.1 - sudo apt-get install apt-file
 0.2 - apt-file search <NAME_OF_THE_MISSING_FILE>
@@ -36,7 +36,7 @@ Installation Instructions:
 
 	-> Set EPICS_HOST_ARCH variable with your host architecture
 8 - sudo vim /etc/profile	(in Ubuntu)
-	
+
 	-> for other Distributions the best file to place enviroment variables varies. Some common places are: ~/.profile, ~/,bash_profile, ~/bashrc for session-wide variables; /etc/profile, /etc/bash.bashrc for system-wide variables.
 
 9 - Append the following lines to the file
@@ -102,7 +102,7 @@ Installation Instructions:
 	-> Execute application
 28 - cd iocBoot/ioc-example
 29 - ../../bin/linux-x86_64/ioc-example st.cmd
-	
+
 	-> If everthing went correcly you should see the epics prompt (epics>). Type "dbl" to see all the records available
 30 - dbl
 31 - exit
@@ -127,7 +127,7 @@ Installation Instructions:
 	-> I would like to comment out the enviroment variables EPICS_BASE ansd EPICS_EXTENSIONS, but the compilation fails
 	-> save and exit (:wq)
 	-> Make symlinks , as ed expects to find it in /usr/lib. Moreover,
-the linker takes the first library found in the library search path, whether it is dynamic or static, This can cause the infamous error "relocation R_X86_64_32 against `.rodata.str1.1' can not be used when making a shared object; recompile with -fPIC". 
+the linker takes the first library found in the library search path, whether it is dynamic or static, This can cause the infamous error "relocation R_X86_64_32 against `.rodata.str1.1' can not be used when making a shared object; recompile with -fPIC".
 40.5 - cd /usr/lib
 41 - sudo ln -s ./x86_64-linux-gnu/libXp.a libXp.a		(probably not needed)
 42 - sudo ln -s ./x86_64-linux-gnu/libXt.a libXt.a		(probably not needed)
@@ -154,7 +154,7 @@ the linker takes the first library found in the library search path, whether it 
 OBS:
 
 By comparing the output from ldd with and without the makefile modification, it is posible
-to note the missing dynamic link to 
+to note the missing dynamic link to
 
 libXtst.so.6 => /usr/lib/x86_64-linux-gnu/libXtst.so.6 (0x00007f174e552000)
 libca.so.3.14 => /opt/epics/base/lib/linux-x86_64/libca.so.3.14 (0x00007f174dfb8000)
@@ -173,7 +173,7 @@ libtinfo.so.5 => /lib/x86_64-linux-gnu/libtinfo.so.5 (0x00007f174ba91000)
 55 - mkdir -pv ${EPICS_EXTENSIONS}/ext_pref/edm
 56 - sudo mkdir -v /opt/epics/edmApps
 57 - sudo chown lerwys:lerwys -R /opt/epics/edmApps
-	
+
 	-> Make symlkinks to new directory just in case another application is still
 	using old paths
 
@@ -214,7 +214,7 @@ PATH=${PATH}:${EPICS_EXTENSIONS}/src/edm/edmMain/O.${EPICS_HOST_ARCH}
 
 62 - for pv in Epics Calc Log Loc;do $EDM -addpv ${EPICS_EXTENSIONS}/lib/${EPICS_HOST_ARCH}/lib$pv.so;done (preferred way)
 	or
-	find ${EPICS_EXTENSIONS}/lib/${EPICS_HOST_ARCH} -iregex ".*\.so" -exec edm -add '{}' \;	
+	find ${EPICS_EXTENSIONS}/lib/${EPICS_HOST_ARCH} -iregex ".*\.so" -exec edm -add '{}' \;
 
 63 - for ff in lib*.so;do ${EDM} -add ${EPICS_EXTENSIONS}/lib/${EPICS_HOST_ARCH}/$ff; done (preferred way)
 	or
@@ -225,12 +225,12 @@ PATH=${PATH}:${EPICS_EXTENSIONS}/src/edm/edmMain/O.${EPICS_HOST_ARCH}
 64 - find . -regextype posix-extended -iregex ".*edl$" -exec sed -i.bak -e 's/helvetica-bold/helvetica-medium/g' '{}' \;
 65 - find . -regextype posix-extended -iregex ".*edl$" -exec sed -i -e 's/courier-medium/courier-bold/g' '{}' \;
 
-	-> The following is an optional step but fundamental if performing any kind of 
+	-> The following is an optional step but fundamental if performing any kind of
 	access through a non-login, non-interactive shell! As common with ssh X redirection
 	(ssh <host_ip> <command>)
 
 66 - sudo vim /etc/sshd_config
-	
+
 	-> Append the following line to the file. It will execute the script located in the argument of
 		ForceCommand.
 
@@ -244,10 +244,10 @@ PATH=${PATH}:${EPICS_EXTENSIONS}/src/edm/edmMain/O.${EPICS_HOST_ARCH}
 	  script does:
 
 > #!/bin/bash
-> 
+>
 > # Script based on the original post from
 > # http://lists.apple.com/archives/macos-x-server/2008/Jun/msg00251.html
-> 
+>
 > export SSH_SESSION=1
 > # If no command specified on the ssh command, fallback to login
 > # (exec login) and preserve environment (-p) for user preauthenticated
@@ -346,7 +346,7 @@ fc-cache -fv
 > find . -regextype posix-extended -iregex ".*edl$" -exec sed -i.bak -e 's/helvetica-bold/helvetica-medium/g' '{}' \;
 > find . -regextype posix-extended -iregex ".*edl$" -exec sed -i -e 's/courier-medium/courier-bold/g' '{}' \;
 
-4 - EDM segmentation fault: 
+4 - EDM segmentation fault:
 
 	Program received signal SIGSEGV, Segmentation fault.
 	0x00007ffff4fb2157 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
@@ -375,14 +375,14 @@ fc-cache -fv
 	8742df.so
 	#13 0x0000000000403336 in main ()
 
-5 - Compilação com Debug symbols e sem otimização
+5 - Compiling with debug symbols Compilação and without optimization
 	USR_CPP_FLAGS = -g -O0
 
-6 - Localizado um symlink errado!
+6 - There was one broken symlink:
 	> ls -la /usr/lib/x86_64-linux-gnu/ | grep libnss_db.so
 	> lrwxrwxrwx   1 root root       36 Aug 21 07:48 libnss_db.so -> /lib/x86_64-linux-gnu/libnss_db.so.2
 
-	-> Destino inexistente
+	-> Unexisting path
 
 7 - sudo apt-get install libnss-db
 8 - cd /usr/lib/x86_64-linux-gnu
@@ -395,9 +395,6 @@ Tips:
 
 1 - lsof -p `pidof edm`
 
-	-> Or find the PID of the process and navigate throught 
+	-> Or find the PID of the process and navigate throught
 
 2 - ls -la /proc/<pid>/fd
-
-	
-
