@@ -10,6 +10,12 @@ resource: http://ubuntuforums.org/showthread.php?t=288534
 	libsamba-hostconfig0 libsamba-policy0 libsamba-util0 \
 	winbind cifs-utils
 
+    For Ubutnu 14.04 and forward, do:
+
+1 - sudo apt-get install samba python-glade2 system-config-samba \
+    libsmbclient python-smbc smbclient  samba-dsdb-modules \
+    samba-common-bin winbind cifs-utils
+
 	-> Create and edit the file /root/.smbcredentials file:
 
 2 - sudo vim /root/.smbcredentials
