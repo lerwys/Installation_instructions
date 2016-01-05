@@ -49,9 +49,9 @@ resource: http://ubuntuforums.org/showthread.php?t=288534
 
 	-> save and exit (:wq)
 
-	-> Overview the samba config file located at /etc/samba/smb.conf. 
+	-> Overview the samba config file located at /etc/samba/smb.conf.
 		It should look like the file located at config_file/smb.conf
-		located in this repository. If it is not, edit it to 
+		located in this repository. If it is not, edit it to
 		reasssemble or just copy and paste the entire file.
 
 8 - sudo vim etc/samba/smb.conf
@@ -60,9 +60,9 @@ resource: http://ubuntuforums.org/showthread.php?t=288534
 	-> save and exit (:wq)
 
 	-> Edit the file /etc/nsswitch.conf to allow ubuntu to figure out
-		windows hostnames. Edit the line beggining with 
+		windows hostnames. Edit the line beggining with
 		"hosts ..." and add the following:
-		
+
 9 - sudo vim /etc/nsswitch.conf
 
 	> hosts: files dns wins
