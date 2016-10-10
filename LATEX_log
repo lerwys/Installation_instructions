@@ -1,0 +1,7 @@
+--------------------------------------------------------
+Ubunut 14.04 Installation Instructions:
+
+1 - Install following packages:
+
+    sudo apt-get install texlive-latex-recommended xlive-fonts-extra texlive-latex-extra texlive \
+        texlive-lang-english texlive-doc-en texlive-latex-extra latexmk texlive-science
