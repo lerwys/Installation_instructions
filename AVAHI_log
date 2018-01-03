@@ -1,0 +1,90 @@
+Source: https://askubuntu.com/questions/460371/trouble-using-ssh-and-avahi
+-------------------------------------------------------
+
+Client Instructions:
+
+-------------------------------------------------------
+Requirements: avahi-daemon avahi-dnsconfd
+    avahi-discover avahi-utils libnss-mdns
+
+0 - sudo apt-get install avahi-daemon \
+    avahi-dnsconfd avahi-discover avahi-utils \
+    libnss-mdns
+
+nss-mdns is a plugin for the GNU Name Service
+Switch (NSS) functionality of the GNU C Library
+(glibc) providing host name resolution via
+Multicast DNS (using Zeroconf, aka Apple Bonjour /
+Apple Rendezvous ), effectively allowing name
+resolution by common Unix/Linux programs in the
+ad-hoc mDNS domain .local
+-------------------------------------------------------
+
+1 - Check /etc/nsswitch.conf
+
+    hosts:     files wins mdns4_minimal dns
+    [NOTFOUND=return] mdns4
+
+It should have mdns4_minimal or mdns4 before
+[NOTFOUND=return] and before dns if you have a DNS
+server that configured resolve *.local.
+
+Remove wins if you are not using winbind/samba to
+resolve Windows share hostnames.
+
+-------------------------------------------------------
+
+Server Instructions:
+
+-------------------------------------------------------
+Requirements: avahi-daemon avahi-dnsconfd avahi-discover avahi-utils
+
+0 - avahi-daemon avahi-dnsconfd avahi-discover avahi-utils
+-------------------------------------------------------
+
+1 - sudo apt-get install avahi-daemon avahi-dnsconfd \
+    avahi-discover avahi-utils
+
+avahi-daemon provide services publishing.
+
+Check its service status
+
+2 - service avahi-daemon status
+
+    avahi-daemon start/running, process 1517
+
+By default avahi publish _workstation._tcp
+service. Check using avahi-discover locally,
+if not listed try enabling it in
+/etc/avahi/avahi-daemon.conf (remove #)
+
+    publish-workstation=yes
+
+Then restart daemon:
+
+3 - sudo service avahi-daemon restart
+
+Debugging hints:
+
+On the client machine
+
+Check avahi-dnsconfd service status
+
+1 - service avahi-dnsconfd status
+    avahi-dnsconfd start/running, process 1548
+
+Run avahi-discover and look for the hostname under IPv4->local->Workstation
+
+2 - avahi-discover
+
+See if Avahi can resolve host names
+
+3 - avahi-resolve -4 --name yourdesktop.local
+
+Ping test
+
+4 - ping yourdesktop.local
+
+lerwys@lerwysPC:~$ ping dig-jobs.local
+PING dig-jobs.local (10.0.18.34) 56(84) bytes of data.
+64 bytes from 10.0.18.34: icmp_seq=1 ttl=64 time=0.239 ms
