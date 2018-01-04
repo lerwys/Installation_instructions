@@ -22,8 +22,7 @@ ad-hoc mDNS domain .local
 
 1 - Check /etc/nsswitch.conf
 
-    hosts:     files wins mdns4_minimal dns
-    [NOTFOUND=return] mdns4
+    hosts:     files wins mdns4_minimal dns [NOTFOUND=return] mdns4
 
 It should have mdns4_minimal or mdns4 before
 [NOTFOUND=return] and before dns if you have a DNS
