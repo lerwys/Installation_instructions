@@ -181,11 +181,6 @@ EOF
 
     sudo chroot /srv/nfsroot update-initramfs -u
 
-11. Donwload/extract debian netboot image
-
-    cd ~/Downloads/
-    wget -nc http://ftp.nl.debian.org/debian/dists/stretch/main/installer-amd64/current/images/netboot/netboot.tar.gz
-
 11. Copy generated initrd, kernel image, and pxe bootloader to tftp root and create folder for PXE config:
 
     sudo cp /srv/nfsroot/boot/initrd.img-*-amd64 /srv/tftp/
