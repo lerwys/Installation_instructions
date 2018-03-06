@@ -131,19 +131,24 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     sudo apt-get install tftp-hpa nfs-kernel-server debootstrap syslinux
     ```
 
-2. We will store our initrd and boot loader under /srv/tftp and our NFS root filesystem under /srv/nfsroot:
+2. Mount special filesystems:
 
     ```bash
-    sudo mkdir -p /srv/tftp /srv/nfsroot /srv/nfshome
+    cd /srv/nfsroot/
+    sudo mount -o bind /dev dev/mount -t sysfs sys sys
+    sudo mount -t sysfs sys sys/
+    sudo mount -o bind /dev dev/
     ```
 
 3. We will store our initrd and boot loader under /srv/tftp and our NFS root filesystem + NFS home + NFS startup under /srv/nfsroot:
-3. Our nfsroot needs to be mountable via NFS. Export it read-only to our local network by putting the following in /etc/exports:
 
     ```bash
     sudo mkdir -p /srv/tftp /srv/nfsroot /srv/nfshome /srv/nfsstartup
     ```
 
+4. Our nfsroot needs to be mountable via NFS. Export it read-only to our local network by putting the following in /etc/exports:
+
+    ```
     /srv/nfsroot 10.0.0.0/24(rw,async,no_subtree_check,no_root_squash)
     /srv/nfshome 10.0.0.0/24(ro,no_root_squash,no_subtree_check)
     /srv/nfsstartup 10.0.0.0/24(ro,no_root_squash,no_subtree_check)
@@ -153,13 +158,13 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     /srv/nfsstartup 192.168.2.0/24(ro,no_root_squash,no_subtree_check)
     ```
 
-4. We will be booting to a custom Debian install. Install it in /srv/nfsroot using Debootstrap:
+5. We will be booting to a custom Debian install. Install it in /srv/nfsroot using Debootstrap:
 
     ```bash
     sudo debootstrap stable /srv/nfsroot http://ftp.us.debian.org/debian
     ```
 
-5. Install desired packages into the NFS:
+6. Install desired packages into the NFS:
 
     ```bash
     sudo chroot /srv/nfsroot apt-get update
@@ -215,14 +220,14 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
         sudo chroot /srv/nfsroot chmod +x /usr/local/bin/docker-compose
         ```
 
-6. Configure its initramfs to generate NFS-booting initrd's:
+7. Configure its initramfs to generate NFS-booting initrd's:
 
     ```bash
     sudo sed 's/MODULES=.*$/MODULES=netboot/' -i /srv/nfsroot/etc/initramfs-tools/initramfs.conf
     sudo bash -c "echo "BOOT=nfs" >> /srv/nfsroot/etc/initramfs-tools/initramfs.conf"
     ```
 
-7. Configure fstab:
+8. Configure fstab:
 
     ```bash
     sudo chroot /srv/nfsroot apt-get -y install nfs-common
@@ -242,13 +247,13 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     "
     ```
 
-8. Configure mtab
+9. Configure mtab
 
     ```bash
     sudo ln -s /proc/mounts /srv/nfsroot/etc/mtab
     ```
 
-9. Configure root user and password in NFS home:
+10. Configure root user and password in NFS home:
 
     ```bash
     sudo chroot /srv/nfsroot passwd root
@@ -259,13 +264,13 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     sudo chmod 755 /srv/nfshome/root/root.txt
     ```
 
-10. Generate initrd
+11. Generate initrd
 
     ```bash
     sudo chroot /srv/nfsroot update-initramfs -u
     ```
 
-11. Copy support libraries from debian netboot to TFTP folder
+12. Copy support libraries from debian netboot to TFTP folder
 
     ```bash
     mkdir -p ~/Downloads/debian-netboot && cd ~/Downloads
@@ -278,7 +283,7 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     sudo ln -s bootlibs/ldlinux.c32 /srv/tftp/
     ```
 
-12. Copy generated initrd, kernel image, and pxe bootloader to tftp root and create folder for PXE config:
+13. Copy generated initrd, kernel image, and pxe bootloader to tftp root and create folder for PXE config:
 
     ```bash
     sudo cp /srv/nfsroot/boot/initrd.img-*-amd64 /srv/tftp/
@@ -287,7 +292,7 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     sudo mkdir /srv/tftp/pxelinux.cfg
     ```
 
-13. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
+14. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
 
     ```bash
     sudo bash -c "cat << EOF > /srv/tftp/pxelinux.cfg/default
@@ -302,13 +307,13 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     "
     ```
 
-14. Export  NFS folders
+15. Export  NFS folders
 
     ```bash
     sudo exportfs -rv
     ```
 
-15. Check if it's running ok:
+16. Check if it's running ok:
 
     ```bash
     sudo systemctl status nfs-kernel-server.service
@@ -330,7 +335,7 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     Mar 05 14:10:22 lerwysPC systemd[1]: Started NFS server and services.
     ```
 
-16. Configure tftp’s /etc/default/tftpd-hpa:
+17. Configure tftp’s /etc/default/tftpd-hpa:
 
     ```
     TFTP_USERNAME="tftp"
@@ -341,17 +346,17 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     OPTIONS="-l -s /srv/tftp"
     ```
 
-17. Add the following to /etc/inetd.conf:
+18. Add the following to /etc/inetd.conf:
 
     ```
     tftp    dgram   udp    wait    root    /usr/sbin/in.tftpd /usr/sbin/in.tftpd -s /srv/tftp
     ```
 
-18. Restart TFTP
+19. Restart TFTP
 
     sudo systemctl restart tftpd-hpa
 
-19. Check if it's running ok:
+20. Check if it's running ok:
 
     ```bash
 	lerwys@lerwysPC:~/Repos/Installation_instructions$ sudo systemctl status tftpd-hpa
@@ -373,7 +378,7 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
 	Mar 05 14:06:37 lerwysPC systemd[1]: Started LSB: HPA's tftp server.
     ```
 
-20. Add the following lines at the end of /etc/dhcp/dhcpd.conf
+21. Add the following lines at the end of /etc/dhcp/dhcpd.conf
 
     ```
     allow booting;
@@ -384,7 +389,7 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     filename "pxelinux.0";
     ```
 
-21. Restart DHCP server
+22. Restart DHCP server
 
     ```bash
     sudo systemctl restart isc-dhcp-server
