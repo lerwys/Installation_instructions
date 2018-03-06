@@ -181,14 +181,25 @@ EOF
 
     sudo chroot /srv/nfsroot update-initramfs -u
 
-11. Copy generated initrd, kernel image, and pxe bootloader to tftp root and create folder for PXE config:
+11. Copy support libraries from debian netboot to TFTP folder
+
+    mkdir -p ~/Downloads/debian-netboot && cd ~/Downloads
+    wget -nc http://ftp.nl.debian.org/debian/dists/stretch/main/installer-amd64/current/images/netboot/netboot.tar.gz
+    cd ~/Downloads/debian-netboot
+    tar xvf ../netboot.tar.gz
+
+    sudo mkdir -p /srv/tftp/bootlibs
+    sudo cp ~/Downloads/debian-netboot/debian-installer/amd64/boot-screens/*.c32 /srv/tftp/bootlibs
+    sudo ln -s bootlibs/ldlinux.c32 /srv/tftp/
+
+12. Copy generated initrd, kernel image, and pxe bootloader to tftp root and create folder for PXE config:
 
     sudo cp /srv/nfsroot/boot/initrd.img-*-amd64 /srv/tftp/
     sudo cp /srv/nfsroot/boot/vmlinuz-*-amd64 /srv/tftp/
     cd /srv/tftp && wget -nc http://ftp.nl.debian.org/debian/dists/stretch/main/installer-amd64/current/images/netboot/pxelinux.0
     sudo mkdir /srv/tftp/pxelinux.cfg
 
-12. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
+13. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
 
     sudo bash -c "cat << EOF > /srv/tftp/pxelinux.cfg/default
 # boot diskless computer with debian stretch
@@ -201,11 +212,11 @@ append ro initrd=initrd.img-4.9.0-4-amd64 root=/dev/nfs ip=dhcp nnfsroot=192.168
 EOF
     "
 
-13. Export  NFS folders
+14. Export  NFS folders
 
     sudo exportfs -rv
 
-14. Check if it's running ok:
+15. Check if it's running ok:
 
     sudo systemctl status nfs-kernel-server.service
 
@@ -225,7 +236,7 @@ EOF
     Mar 05 14:10:22 lerwysPC systemd[1]: Started NFS server and services.
     `
 
-15. Configure tftp’s /etc/default/tftpd-hpa:
+16. Configure tftp’s /etc/default/tftpd-hpa:
 
     `
     TFTP_USERNAME="tftp"
@@ -236,17 +247,17 @@ EOF
     OPTIONS="-l -s /srv/tftp"
     `
 
-16. Add the following to /etc/inetd.conf:
+17. Add the following to /etc/inetd.conf:
 
     `
     tftp    dgram   udp    wait    root    /usr/sbin/in.tftpd /usr/sbin/in.tftpd -s /srv/tftp
     `
 
-17. Restart TFTP
+18. Restart TFTP
 
     sudo systemctl restart tftpd-hpa
 
-18. Check if it's running ok:
+19. Check if it's running ok:
 
     `
 	lerwys@lerwysPC:~/Repos/Installation_instructions$ sudo systemctl status tftpd-hpa
@@ -268,7 +279,7 @@ EOF
 	Mar 05 14:06:37 lerwysPC systemd[1]: Started LSB: HPA's tftp server.
     `
 
-19. Add the following lines at the end of /etc/dhcp/dhcpd.conf
+20. Add the following lines at the end of /etc/dhcp/dhcpd.conf
 
     `
     allow booting;
@@ -280,6 +291,6 @@ EOF
 
     `
 
-20. Restart DHCP server
+21. Restart DHCP server
 
     sudo systemctl restart isc-dhcp-server
