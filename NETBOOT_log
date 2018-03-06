@@ -208,7 +208,7 @@ prompt 1
 timeout 10
 label Debian
 kernel vmlinuz-4.9.0-4-amd64
-append ro initrd=initrd.img-4.9.0-4-amd64 root=/dev/nfs ip=dhcp nnfsroot=192.168.2.12:/srv/nfsroot
+append ro initrd=initrd.img-4.9.0-4-amd64 root=/dev/nfs ip=dhcp nfsroot=192.168.2.12:/srv/nfsroot
 EOF
     "
 
