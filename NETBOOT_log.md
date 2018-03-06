@@ -175,14 +175,14 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
 
     ```bash
     sudo bash -c "cat << EOF > /srv/nfsroot/etc/fstab
-proc                 /proc      proc    defaults   0 0
-/dev/nfs             /          nfs     tcp,nolock 0 0
-none                 /tmp       tmpfs   defaults   0 0
-none                 /var/tmp   tmpfs   defaults   0 0
-none                 /media     tmpfs   defaults   0 0
-none                 /var/log   tmpfs   defaults   0 0
-192.168.2.12:/srv/nfshome /home   nfs     tcp,nolock 0 0
-EOF
+    proc                 /proc      proc    defaults   0 0
+    /dev/nfs             /          nfs     tcp,nolock 0 0
+    none                 /tmp       tmpfs   defaults   0 0
+    none                 /var/tmp   tmpfs   defaults   0 0
+    none                 /media     tmpfs   defaults   0 0
+    none                 /var/log   tmpfs   defaults   0 0
+    192.168.2.12:/srv/nfshome /home   nfs     tcp,nolock 0 0
+    EOF
     "
     ```
 
@@ -235,14 +235,14 @@ EOF
 
     ```bash
     sudo bash -c "cat << EOF > /srv/tftp/pxelinux.cfg/default
-# boot diskless computer with debian stretch
-default Debian
-prompt 1
-timeout 10
-label Debian
-kernel vmlinuz-4.9.0-4-amd64
-append root=/dev/nfs initrd=initrd.img-4.9.0-4-amd64 nfsroot=192.168.2.12:/srv/nfsroot ro panic=60 ipv6.disable=1  ip=:::::eno1
-EOF
+    # boot diskless computer with debian stretch
+    default Debian
+    prompt 1
+    timeout 10
+    label Debian
+    kernel vmlinuz-4.9.0-4-amd64
+    append root=/dev/nfs initrd=initrd.img-4.9.0-4-amd64 nfsroot=192.168.2.12:/srv/nfsroot ro panic=60 ipv6.disable=1  ip=:::::eno1
+    EOF
     "
     ```
 
