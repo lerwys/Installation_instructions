@@ -12,29 +12,33 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
 
 1. Install DHCP server
 
+    ```bash
     sudo apt-get install isc-dhcp-server
+    ```
 
 2. Open DHCP server configuration file
 
+    ```bash
     sudo vim /etc/default/isc-dhcp-server
+    ```
 
 3. Assign network interface:
 
-    `
+    ```
     [...]
     INTERFACES="eth2"
-    `
+    ```
 
 4. Enter the domain name and domain-name-servers in dhcpd.conf:
 
-    `
+    ```
     option domain-name-servers 10.0.18.1;
     option routers 10.0.18.1;
-    `
+    ```
 
 5. Configure server to ONLY supply IPs to specified MAC addresses in dhcpd.conf:
 
-    `
+    ```
     subnet 192.168.2.0 netmask 255.255.255.0 {
       range 192.168.2.30 192.168.2.100;
       option domain-name-servers 192.168.2.1;
@@ -69,28 +73,32 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     #  fixed-address 10.0.18.231;
       fixed-address 192.168.2.231;
     }
-    `
+    ```
 
 6. Make this server as official DHCP for your clients, find and uncomment the following line in dhcpd.conf:
 
-    `
+    ```
     [...]
     authoritative;
     [...]
-    `
+    ```
 
     Check if the file is similiar to the one in config_files/dhcpd.conf, inside
     this reposirory.
 
 7. Restart DHCP server
 
+    ```bash
     sudo systemctl restart isc-dhcp-server
+    ```
 
 8. Check server status
 
+    ```bash
     sudo systemctl status isc-dhcp-server
+    ```
 
-    `
+    ```bash
     lerwys@lerwysPC:/srv$ sudo systemctl status isc-dhcp-server
     ● isc-dhcp-server.service - ISC DHCP IPv4 server
        Loaded: loaded (/lib/systemd/system/isc-dhcp-server.service; enabled; vendor preset: enabled)
@@ -113,47 +121,59 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     Mar 05 13:44:53 lerwysPC dhcpd[22331]: Sending on   LPF/eth2/34:e6:d7:fc:44:c2/10.0.18.0/24
     Mar 05 13:44:53 lerwysPC dhcpd[22331]: Sending on   Socket/fallback/fallback-net
     Mar 05 13:44:53 lerwysPC dhcpd[22331]: Server starting service.
-    `
+    ```
 
 ## PXE server
 
 1. Install TFTP, NFS, debootstrap
 
+    ```bash
     sudo apt-get install tftp-hpa nfs-kernel-server debootstrap syslinux
+    ```
 
 2. We will store our initrd and boot loader under /srv/tftp and our NFS root filesystem under /srv/nfsroot:
 
+    ```bash
     sudo mkdir -p /srv/tftp /srv/nfsroot /srv/nfshome
+    ```
 
 3. Our nfsroot needs to be mountable via NFS. Export it read-only to our local network by putting the following in /etc/exports:
 
-    `
+    ```bash
     /srv/nfsroot 10.0.0.0/24(rw,async,no_subtree_check,no_root_squash)
     /srv/nfshome 10.0.0.0/24(ro,no_root_squash,no_subtree_check)
 
     /srv/nfsroot 192.168.2.0/24(rw,async,no_subtree_check,no_root_squash)
     /srv/nfshome 192.168.2.0/24(ro,no_root_squash,no_subtree_check)
-
-    `
+    ```
 
 4. We will be booting to a custom Debian install. Install it in /srv/nfsroot using Debootstrap:
 
+    ```bash
     sudo debootstrap stable /srv/nfsroot http://ftp.us.debian.org/debian
+    ```
 
 5. Install desired packages into the NFS:
 
+    ```bash
     sudo chroot /srv/nfsroot apt-get update
     sudo chroot /srv/nfsroot apt-get install -y initramfs-tools linux-image-amd64
+    ```
 
 6. Configure its initramfs to generate NFS-booting initrd's:
 
+    ```bash
     sudo sed 's/MODULES=.*$/MODULES=netboot/' -i /srv/nfsroot/etc/initramfs-tools/initramfs.conf
     sudo bash -c "echo "BOOT=nfs" >> /srv/nfsroot/etc/initramfs-tools/initramfs.conf"
+    ```
 
 7. Configure fstab:
 
+    ```bash
     sudo chroot /srv/nfsroot apt-get -y install nfs-common
+    ```
 
+    ```bash
     sudo bash -c "cat << EOF > /srv/nfsroot/etc/fstab
 proc                 /proc      proc    defaults   0 0
 /dev/nfs             /          nfs     tcp,nolock 0 0
@@ -164,26 +184,34 @@ none                 /var/log   tmpfs   defaults   0 0
 192.168.2.12:/srv/nfshome /home   nfs     tcp,nolock 0 0
 EOF
     "
+    ```
 
 8. Configure mtab
 
+    ```bash
     sudo ln -s /proc/mounts /srv/nfsroot/etc/mtab
+    ```
 
 9. Configure root user and password in NFS home:
 
+    ```bash
     sudo chroot /srv/nfsroot passwd root
     sudo chroot /srv/nfsroot usermod -d /home/root root
 
     sudo mkdir -p /srv/nfshome/root
     sudo bash -c 'echo "root user" > /srv/nfshome/root/root.txt'
     sudo chmod 755 /srv/nfshome/root/root.txt
+    ```
 
 10. Generate initrd
 
+    ```bash
     sudo chroot /srv/nfsroot update-initramfs -u
+    ```
 
 11. Copy support libraries from debian netboot to TFTP folder
 
+    ```bash
     mkdir -p ~/Downloads/debian-netboot && cd ~/Downloads
     wget -nc http://ftp.nl.debian.org/debian/dists/stretch/main/installer-amd64/current/images/netboot/netboot.tar.gz
     cd ~/Downloads/debian-netboot
@@ -192,16 +220,20 @@ EOF
     sudo mkdir -p /srv/tftp/bootlibs
     sudo cp ~/Downloads/debian-netboot/debian-installer/amd64/boot-screens/*.c32 /srv/tftp/bootlibs
     sudo ln -s bootlibs/ldlinux.c32 /srv/tftp/
+    ```
 
 12. Copy generated initrd, kernel image, and pxe bootloader to tftp root and create folder for PXE config:
 
+    ```bash
     sudo cp /srv/nfsroot/boot/initrd.img-*-amd64 /srv/tftp/
     sudo cp /srv/nfsroot/boot/vmlinuz-*-amd64 /srv/tftp/
     cd /srv/tftp && wget -nc http://ftp.nl.debian.org/debian/dists/stretch/main/installer-amd64/current/images/netboot/pxelinux.0
     sudo mkdir /srv/tftp/pxelinux.cfg
+    ```
 
 13. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
 
+    ```bash
     sudo bash -c "cat << EOF > /srv/tftp/pxelinux.cfg/default
 # boot diskless computer with debian stretch
 default Debian
@@ -212,16 +244,21 @@ kernel vmlinuz-4.9.0-4-amd64
 append root=/dev/nfs initrd=initrd.img-4.9.0-4-amd64 nfsroot=192.168.2.12:/srv/nfsroot ro panic=60 ipv6.disable=1  ip=:::::eno1
 EOF
     "
+    ```
 
 14. Export  NFS folders
 
+    ```bash
     sudo exportfs -rv
+    ```
 
 15. Check if it's running ok:
 
+    ```bash
     sudo systemctl status nfs-kernel-server.service
+    ```
 
-    `
+    ```bash
     lerwys@lerwysPC:~$ sudo systemctl status nfs-kernel-server.service
     ● nfs-server.service - NFS server and services
        Loaded: loaded (/lib/systemd/system/nfs-server.service; enabled; vendor preset: enabled)
@@ -235,24 +272,24 @@ EOF
 
     Mar 05 14:10:21 lerwysPC systemd[1]: Starting NFS server and services...
     Mar 05 14:10:22 lerwysPC systemd[1]: Started NFS server and services.
-    `
+    ```
 
 16. Configure tftp’s /etc/default/tftpd-hpa:
 
-    `
+    ```
     TFTP_USERNAME="tftp"
     TFTP_DIRECTORY="/srv/tftp"
     TFTP_ADDRESS=":69"
     TFTP_OPTIONS="--secure"
     RUN_DAEMON="yes"
     OPTIONS="-l -s /srv/tftp"
-    `
+    ```
 
 17. Add the following to /etc/inetd.conf:
 
-    `
+    ```
     tftp    dgram   udp    wait    root    /usr/sbin/in.tftpd /usr/sbin/in.tftpd -s /srv/tftp
-    `
+    ```
 
 18. Restart TFTP
 
@@ -260,7 +297,7 @@ EOF
 
 19. Check if it's running ok:
 
-    `
+    ```bash
 	lerwys@lerwysPC:~/Repos/Installation_instructions$ sudo systemctl status tftpd-hpa
 	● tftpd-hpa.service - LSB: HPA's tftp server
 	   Loaded: loaded (/etc/init.d/tftpd-hpa; bad; vendor preset: enabled)
@@ -278,20 +315,21 @@ EOF
 	Mar 05 14:06:37 lerwysPC tftpd-hpa[23384]:  * Starting HPA's tftpd in.tftpd
 	Mar 05 14:06:37 lerwysPC tftpd-hpa[23384]:    ...done.
 	Mar 05 14:06:37 lerwysPC systemd[1]: Started LSB: HPA's tftp server.
-    `
+    ```
 
 20. Add the following lines at the end of /etc/dhcp/dhcpd.conf
 
-    `
+    ```
     allow booting;
     allow bootp;
     option option-128 code 128 = string;
     option option-129 code 129 = text;
     next-server 192.168.2.12;
     filename "pxelinux.0";
-
-    `
+    ```
 
 21. Restart DHCP server
 
+    ```bash
     sudo systemctl restart isc-dhcp-server
+    ```
