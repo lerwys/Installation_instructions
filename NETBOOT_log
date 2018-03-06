@@ -191,17 +191,13 @@ EOF
 12. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
 
     sudo bash -c "cat << EOF > /srv/tftp/pxelinux.cfg/default
-
 # boot diskless computer with debian stretch
-prompt 0
-menu title pc-client
-
-ontimeout linux-4.9.0-4-amd64-stretch
-timeout 50
-label linux-4.9.0-4-amd64-stretch
-menu label linux-4.9.0-4-amd64 stretch
+default Debian
+prompt 1
+timeout 10
+label Debian
 kernel vmlinuz-4.9.0-4-amd64
-append root=/dev/nfs initrd=initrd.img-4.9.0-4-amd64 nfsroot=10.0.18.37:/srv/nfsroot ro panic=60 ipv6.disable=1  ip=dhcp
+append ro initrd=initrd.img-4.9.0-4-amd64 root=/dev/nfs ip=dhcp nnfsroot=192.168.2.12:/srv/nfsroot
 EOF
     "
 
