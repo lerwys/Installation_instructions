@@ -137,14 +137,20 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     sudo mkdir -p /srv/tftp /srv/nfsroot /srv/nfshome
     ```
 
+3. We will store our initrd and boot loader under /srv/tftp and our NFS root filesystem + NFS home + NFS startup under /srv/nfsroot:
 3. Our nfsroot needs to be mountable via NFS. Export it read-only to our local network by putting the following in /etc/exports:
 
     ```bash
+    sudo mkdir -p /srv/tftp /srv/nfsroot /srv/nfshome /srv/nfsstartup
+    ```
+
     /srv/nfsroot 10.0.0.0/24(rw,async,no_subtree_check,no_root_squash)
     /srv/nfshome 10.0.0.0/24(ro,no_root_squash,no_subtree_check)
+    /srv/nfsstartup 10.0.0.0/24(ro,no_root_squash,no_subtree_check)
 
     /srv/nfsroot 192.168.2.0/24(rw,async,no_subtree_check,no_root_squash)
     /srv/nfshome 192.168.2.0/24(ro,no_root_squash,no_subtree_check)
+    /srv/nfsstartup 192.168.2.0/24(ro,no_root_squash,no_subtree_check)
     ```
 
 4. We will be booting to a custom Debian install. Install it in /srv/nfsroot using Debootstrap:
@@ -231,6 +237,7 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     none                 /media     tmpfs   defaults   0 0
     none                 /var/log   tmpfs   defaults   0 0
     192.168.2.12:/srv/nfshome /home   nfs     tcp,nolock 0 0
+    192.168.2.12:/srv/nfsstartup /startup   nfs     tcp,nolock 0 0
     EOF
     "
     ```
