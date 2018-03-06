@@ -171,7 +171,10 @@ EOF
 
     sudo ln -s /proc/mounts /srv/nfsroot/etc/mtab
 
-9. Configure root user in NFS home:
+9. Configure root user and password in NFS home:
+
+    sudo chroot /srv/nfsroot passwd root
+    sudo chroot /srv/nfsroot usermod -d /home/root root
 
     sudo mkdir -p /srv/nfshome/root
     sudo bash -c 'echo "root user" > /srv/nfshome/root/root.txt'
