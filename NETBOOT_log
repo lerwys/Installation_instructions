@@ -35,29 +35,39 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
 5. Configure server to ONLY supply IPs to specified MAC addresses in dhcpd.conf:
 
     `
-    subnet 10.0.18.0 netmask 255.255.255.0 {
+    subnet 192.168.2.0 netmask 255.255.255.0 {
+      range 192.168.2.30 192.168.2.100;
+      option domain-name-servers 192.168.2.1;
+      option domain-name "test-dig1.lan";
+      option subnet-mask 255.255.255.0;
+      option routers 192.168.2.1;
+      option broadcast-address 192.168.2.255;
+      default-lease-time 600;
+      max-lease-time 7200;
     }
 
     host dell-r230-gbe1-test {
-      option domain-name-servers 10.0.18.1;
+      option domain-name-servers 192.168.2.1;
       option domain-name "test-dig1.lan";
-      option routers 10.0.18.1;
-      option broadcast-address 10.0.18.255;
+      option routers 192.168.2.1;
+      option broadcast-address 192.168.2.255;
       default-lease-time 600;
       max-lease-time 7200;
       hardware ethernet 50:9a:4c:75:ce:3d;
-      fixed-address 10.0.18.230;
+    #  fixed-address 10.0.18.230;
+      fixed-address 192.168.2.230;
     }
 
     host dell-r230-idrac-test {
-      option domain-name-servers 10.0.18.1;
+      option domain-name-servers 192.168.2.1;
       option domain-name "test-dig2.lan";
-      option routers 10.0.18.1;
-      option broadcast-address 10.0.18.255;
+      option routers 192.168.2.1;
+      option broadcast-address 192.168.2.255;
       default-lease-time 600;
       max-lease-time 7200;
       hardware ethernet 50:9a:4c:75:ce:3f;
-      fixed-address 10.0.18.231;
+    #  fixed-address 10.0.18.231;
+      fixed-address 192.168.2.231;
     }
     `
 
@@ -68,6 +78,9 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     authoritative;
     [...]
     `
+
+    Check if the file is similiar to the one in config_files/dhcpd.conf, inside
+    this reposirory.
 
 7. Restart DHCP server
 
@@ -165,6 +178,11 @@ EOF
 
     sudo chroot /srv/nfsroot update-initramfs -u
 
+11. Donwload/extract debian netboot image
+
+    cd ~/Downloads/
+    wget -nc http://ftp.nl.debian.org/debian/dists/stretch/main/installer-amd64/current/images/netboot/netboot.tar.gz
+
 11. Copy generated initrd, kernel image, and pxe bootloader to tftp root and create folder for PXE config:
 
     sudo cp /srv/nfsroot/boot/initrd.img-*-amd64 /srv/tftp/
@@ -175,8 +193,8 @@ EOF
 12. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
 
     sudo bash -c "cat << EOF > /srv/tftp/pxelinux.cfg/default
+
 # boot diskless computer with debian stretch
-default menu.c32
 prompt 0
 menu title pc-client
 
@@ -185,7 +203,7 @@ timeout 50
 label linux-4.9.0-4-amd64-stretch
 menu label linux-4.9.0-4-amd64 stretch
 kernel vmlinuz-4.9.0-4-amd64
-append root=/dev/nfs initrd=initrd.pxe-4.9.0-4-amd64 nfsroot=10.0.18.37:/srv/nfsroot ro panic=60 ipv6.disable=1  ip=dhcp
+append root=/dev/nfs initrd=initrd.img-4.9.0-4-amd64 nfsroot=10.0.18.37:/srv/nfsroot ro panic=60 ipv6.disable=1  ip=dhcp
 EOF
     "
 
