@@ -157,8 +157,57 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
 
     ```bash
     sudo chroot /srv/nfsroot apt-get update
-    sudo chroot /srv/nfsroot apt-get install -y initramfs-tools linux-image-amd64
+    sudo chroot /srv/nfsroot apt-get install -y \
+        initramfs-tools \
+        linux-image-amd64
     ```
+
+    1. Install Docker CE
+
+        ```bash
+        sudo chroot /srv/nfsroot apt-get install -y \
+             apt-transport-https \
+             ca-certificates \
+             curl \
+             gnupg2 \
+             software-properties-common
+        ```
+
+    2. Add GPG key:
+
+        ```bash
+        sudo chroot /srv/nfsroot bash -c "curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "$ID")/gpg | apt-key add -"
+        ```
+
+    3. Add apt repository
+
+        ```bash
+        sudo chroot /srv/nfsroot add-apt-repository \
+            "deb [arch=amd64] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") \
+            $(lsb_release -cs) \
+            stable"
+        ```
+
+    4. Update and install docker CE
+
+        ```bash
+        sudo chroot /srv/nfsroot apt-get update
+        sudo chroot /srv/nfsroot apt-get install -y docker-ce
+        ```
+
+    5. Install Docker Compose
+
+        ```bash
+        sudo chroot /srv/nfsroot curl -L \
+            https://github.com/docker/compose/releases/download/1.19.0/docker-compose-`uname -s`-`uname -m` \
+            -o /usr/local/bin/docker-compose
+        ```
+
+    6. Add executable permissions
+
+        ```bash
+        sudo chroot /srv/nfsroot chmod +x /usr/local/bin/docker-compose
+        ```
 
 6. Configure its initramfs to generate NFS-booting initrd's:
 
