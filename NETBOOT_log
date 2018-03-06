@@ -136,8 +136,6 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
 
     `
 
-4. Setup home
-
 4. We will be booting to a custom Debian install. Install it in /srv/nfsroot using Debootstrap:
 
     sudo debootstrap stable /srv/nfsroot http://ftp.us.debian.org/debian
