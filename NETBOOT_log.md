@@ -80,7 +80,18 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     }
     ```
 
-6. Make this server as official DHCP for your clients, find and uncomment the following line in dhcpd.conf:
+6. Add the following lines at the end of /etc/dhcp/dhcpd.conf
+
+    ```
+    allow booting;
+    allow bootp;
+    option option-128 code 128 = string;
+    option option-129 code 129 = text;
+    next-server 192.168.2.12;
+    filename "pxelinux.0";
+    ```
+
+7. Make this server as official DHCP for your clients, find and uncomment the following line in dhcpd.conf:
 
     ```
     [...]
@@ -91,13 +102,13 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     Check if the file is similiar to the one in config_files/dhcpd.conf, inside
     this reposirory.
 
-7. Restart DHCP server
+8. Restart DHCP server
 
     ```bash
     sudo systemctl restart isc-dhcp-server
     ```
 
-8. Check server status
+9. Check server status
 
     ```bash
     sudo systemctl status isc-dhcp-server
@@ -136,7 +147,56 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     sudo apt-get install tftp-hpa nfs-kernel-server debootstrap syslinux
     ```
 
-2. Mount special filesystems:
+3. We will store our initrd and boot loader under /srv/tftp and our NFS root filesystem under /srv/nfsroot and NFS home under/srv/nfshome:
+
+    ```bash
+    sudo mkdir -p /srv/tftp /srv/nfsroot /srv/nfshome/{root,dell-r230-server-1,dell-r230-server-2}
+    ```
+
+3. Configure tftp’s /etc/default/tftpd-hpa:
+
+    ```
+    TFTP_USERNAME="tftp"
+    TFTP_DIRECTORY="/srv/tftp"
+    TFTP_ADDRESS=":69"
+    TFTP_OPTIONS="--secure"
+    RUN_DAEMON="yes"
+    OPTIONS="-l -s /srv/tftp"
+    ```
+
+4. Add the following to /etc/inetd.conf:
+
+    ```
+    tftp    dgram   udp    wait    root    /usr/sbin/in.tftpd /usr/sbin/in.tftpd -s /srv/tftp
+    ```
+
+5. Restart TFTP
+
+    sudo systemctl restart tftpd-hpa
+
+6. Check if it's running ok:
+
+    ```bash
+	lerwys@lerwysPC:~/Repos/Installation_instructions$ sudo systemctl status tftpd-hpa
+	● tftpd-hpa.service - LSB: HPA's tftp server
+	   Loaded: loaded (/etc/init.d/tftpd-hpa; bad; vendor preset: enabled)
+	   Active: active (running) since Seg 2018-03-05 14:06:37 -03; 3s ago
+	     Docs: man:systemd-sysv-generator(8)
+	  Process: 23372 ExecStop=/etc/init.d/tftpd-hpa stop (code=exited, status=0/SUCCESS)
+	  Process: 23384 ExecStart=/etc/init.d/tftpd-hpa start (code=exited, status=0/SUCCESS)
+	    Tasks: 1
+	   Memory: 192.0K
+	      CPU: 9ms
+	   CGroup: /system.slice/tftpd-hpa.service
+	           └─23399 /usr/sbin/in.tftpd --listen --user tftp --address :69 --secure /srv/tftp
+
+	Mar 05 14:06:37 lerwysPC systemd[1]: Starting LSB: HPA's tftp server...
+	Mar 05 14:06:37 lerwysPC tftpd-hpa[23384]:  * Starting HPA's tftpd in.tftpd
+	Mar 05 14:06:37 lerwysPC tftpd-hpa[23384]:    ...done.
+	Mar 05 14:06:37 lerwysPC systemd[1]: Started LSB: HPA's tftp server.
+    ```
+
+7. Mount special filesystems:
 
     ```bash
     cd /srv/nfsroot/
@@ -145,37 +205,64 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     sudo mount -o bind /dev dev/
     ```
 
-3. We will store our initrd and boot loader under /srv/tftp and our NFS root filesystem + NFS home + NFS startup under /srv/nfsroot:
-
-    ```bash
-    sudo mkdir -p /srv/tftp /srv/nfsroot /srv/nfshome /srv/nfsstartup
-    ```
-
-4. Our nfsroot needs to be mountable via NFS. Export it read-only to our local network by putting the following in /etc/exports:
+8. Our nfsroot and nfshome needs to be mountable via NFS. Export them to our local network by putting the following in /etc/exports:
 
     ```
     /srv/nfsroot 10.0.0.0/24(rw,async,no_subtree_check,no_root_squash)
-    /srv/nfshome 10.0.0.0/24(ro,no_root_squash,no_subtree_check)
-    /srv/nfsstartup 10.0.0.0/24(ro,no_root_squash,no_subtree_check)
+    #/srv/nfshome 10.0.0.0/24(ro,no_root_squash,no_subtree_check)
+    /srv/nfshome/dell-r230-server-1 10.0.0.0/24(rw,async,no_subtree_check,insecure)
+    /srv/nfshome/dell-r230-server-2 10.0.0.0/24(rw,async,no_subtree_check,insecure)
+    /srv/nfshome/root 10.0.0.0/24(rw,async,no_subtree_check,insecure)
 
     /srv/nfsroot 192.168.2.0/24(rw,async,no_subtree_check,no_root_squash)
-    /srv/nfshome 192.168.2.0/24(ro,no_root_squash,no_subtree_check)
-    /srv/nfsstartup 192.168.2.0/24(ro,no_root_squash,no_subtree_check)
+    #/srv/nfshome 192.168.2.0/24(ro,no_root_squash,no_subtree_check)
+    /srv/nfshome/dell-r230-server-1 192.168.2.0/24(rw,async,no_subtree_check,insecure)
+    /srv/nfshome/dell-r230-server-2 192.168.2.0/24(rw,async,no_subtree_check,insecure)
+    /srv/nfshome/root 192.168.2.0/24(rw,async,no_subtree_check,insecure)
     ```
 
-5. We will be booting to a custom Debian install. Install it in /srv/nfsroot using Debootstrap:
+9. Check if NFS server is running ok:
+
+    ```bash
+    sudo systemctl status nfs-kernel-server.service
+    ```
+
+    ```bash
+    lerwys@lerwysPC:~$ sudo systemctl status nfs-kernel-server.service
+    ● nfs-server.service - NFS server and services
+       Loaded: loaded (/lib/systemd/system/nfs-server.service; enabled; vendor preset: enabled)
+       Active: active (exited) since Seg 2018-03-05 14:10:22 -03; 850ms ago
+      Process: 23643 ExecStopPost=/usr/sbin/exportfs -f (code=exited, status=0/SUCCESS)
+      Process: 23641 ExecStopPost=/usr/sbin/exportfs -au (code=exited, status=0/SUCCESS)
+      Process: 23638 ExecStop=/usr/sbin/rpc.nfsd 0 (code=exited, status=0/SUCCESS)
+      Process: 23659 ExecStart=/usr/sbin/rpc.nfsd $RPCNFSDARGS (code=exited, status=0/SUCCESS)
+      Process: 23655 ExecStartPre=/usr/sbin/exportfs -r (code=exited, status=0/SUCCESS)
+     Main PID: 23659 (code=exited, status=0/SUCCESS)
+
+    Mar 05 14:10:21 lerwysPC systemd[1]: Starting NFS server and services...
+    Mar 05 14:10:22 lerwysPC systemd[1]: Started NFS server and services.
+    ```
+
+10. Export  NFS folders
+
+    ```bash
+    sudo exportfs -rv
+    ```
+
+11. We will be booting to a custom Debian install. Install it in /srv/nfsroot using Debootstrap:
 
     ```bash
     sudo debootstrap stable /srv/nfsroot http://ftp.us.debian.org/debian
     ```
 
-6. Install desired packages into the NFS:
+12. Install desired packages into the NFS:
 
     ```bash
     sudo chroot /srv/nfsroot apt-get update
     sudo chroot /srv/nfsroot apt-get install -y \
         initramfs-tools \
-        linux-image-amd64
+        linux-image-amd64 \
+        autofs
     ```
 
     1. Install Docker CE
@@ -225,14 +312,28 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
         sudo chroot /srv/nfsroot chmod +x /usr/local/bin/docker-compose
         ```
 
-7. Configure its initramfs to generate NFS-booting initrd's:
+    7. Setup autofs to mount the hostname home directory
+
+        ```bash
+        sudo bash -c 'echo -e "\n# Automount NFS partitions\n/home   /etc/auto.home" \
+            >> /srv/nfsroot/etc/auto.master'
+        ```
+
+        ```bash
+        sudo bash -c 'cat << "EOF" > /srv/nfsroot/etc/auto.home
+        $HOST   192.168.2.12:/srv/nfshome/$HOST
+        EOF
+        '
+        ```
+
+13. Configure its initramfs to generate NFS-booting initrd's:
 
     ```bash
     sudo sed 's/MODULES=.*$/MODULES=netboot/' -i /srv/nfsroot/etc/initramfs-tools/initramfs.conf
     sudo bash -c "echo "BOOT=nfs" >> /srv/nfsroot/etc/initramfs-tools/initramfs.conf"
     ```
 
-8. Configure fstab:
+14. Configure fstab:
 
     ```bash
     sudo chroot /srv/nfsroot apt-get -y install nfs-common
@@ -246,36 +347,40 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     none                 /var/tmp   tmpfs   defaults   0 0
     none                 /media     tmpfs   defaults   0 0
     none                 /var/log   tmpfs   defaults   0 0
-    192.168.2.12:/srv/nfshome /home   nfs     tcp,nolock 0 0
-    192.168.2.12:/srv/nfsstartup /startup   nfs     tcp,nolock 0 0
     EOF
     "
     ```
 
-9. Configure mtab
+15. Configure mtab
 
     ```bash
     sudo ln -s /proc/mounts /srv/nfsroot/etc/mtab
     ```
 
-10. Configure root user and password in NFS home:
+16. Configure root user and password in NFS homes:
 
     ```bash
     sudo chroot /srv/nfsroot passwd root
     sudo chroot /srv/nfsroot usermod -d /home/root root
-
-    sudo mkdir -p /srv/nfshome/root
-    sudo bash -c 'echo "root user" > /srv/nfshome/root/root.txt'
-    sudo chmod 755 /srv/nfshome/root/root.txt
     ```
 
-11. Generate initrd
+    ```bash
+    sudo mkdir -p /srv/nfshome/dell-r230-server-1
+    sudo bash -c 'echo "user" > /srv/nfshome/dell-r230-server-1/user.txt'
+    sudo chmod 755 /srv/nfshome/dell-r230-server-1/user.txt
+
+    sudo mkdir -p /srv/nfshome/root
+    sudo bash -c 'echo "user" > /srv/nfshome/dell-r230-server-1/user.txt'
+    sudo chmod 755 /srv/nfshome/dell-r230-server-1/user.txt
+    ```
+
+17. Generate initrd
 
     ```bash
     sudo chroot /srv/nfsroot update-initramfs -u
     ```
 
-12. Copy support libraries from debian netboot to TFTP folder
+18. Copy support libraries from debian netboot to TFTP folder
 
     ```bash
     mkdir -p ~/Downloads/debian-netboot && cd ~/Downloads
@@ -288,7 +393,7 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     sudo ln -s bootlibs/ldlinux.c32 /srv/tftp/
     ```
 
-13. Copy generated initrd, kernel image, and pxe bootloader to tftp root and create folder for PXE config:
+19. Copy generated initrd, kernel image, and pxe bootloader to tftp root and create folder for PXE config:
 
     ```bash
     sudo cp /srv/nfsroot/boot/initrd.img-*-amd64 /srv/tftp/
@@ -297,7 +402,7 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     sudo mkdir /srv/tftp/pxelinux.cfg
     ```
 
-14. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
+20. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
 
     ```bash
     sudo bash -c "cat << EOF > /srv/tftp/pxelinux.cfg/default
@@ -307,95 +412,8 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     timeout 10
     label Debian
     kernel vmlinuz-4.9.0-4-amd64
-    append root=/dev/nfs initrd=initrd.img-4.9.0-4-amd64 nfsroot=192.168.2.12:/srv/nfsroot ro panic=60 ipv6.disable=1  ip=:::::eno1
+    append root=/dev/nfs initrd=initrd.img-4.9.0-4-amd64 nfsroot=192.168.2.12:/srv/nfsroot ro panic=10 ipv6.disable=1  ip=:::::eno1
     EOF
     "
     ```
-
-15. Export  NFS folders
-
-    ```bash
-    sudo exportfs -rv
-    ```
-
-16. Check if it's running ok:
-
-    ```bash
-    sudo systemctl status nfs-kernel-server.service
-    ```
-
-    ```bash
-    lerwys@lerwysPC:~$ sudo systemctl status nfs-kernel-server.service
-    ● nfs-server.service - NFS server and services
-       Loaded: loaded (/lib/systemd/system/nfs-server.service; enabled; vendor preset: enabled)
-       Active: active (exited) since Seg 2018-03-05 14:10:22 -03; 850ms ago
-      Process: 23643 ExecStopPost=/usr/sbin/exportfs -f (code=exited, status=0/SUCCESS)
-      Process: 23641 ExecStopPost=/usr/sbin/exportfs -au (code=exited, status=0/SUCCESS)
-      Process: 23638 ExecStop=/usr/sbin/rpc.nfsd 0 (code=exited, status=0/SUCCESS)
-      Process: 23659 ExecStart=/usr/sbin/rpc.nfsd $RPCNFSDARGS (code=exited, status=0/SUCCESS)
-      Process: 23655 ExecStartPre=/usr/sbin/exportfs -r (code=exited, status=0/SUCCESS)
-     Main PID: 23659 (code=exited, status=0/SUCCESS)
-
-    Mar 05 14:10:21 lerwysPC systemd[1]: Starting NFS server and services...
-    Mar 05 14:10:22 lerwysPC systemd[1]: Started NFS server and services.
-    ```
-
-17. Configure tftp’s /etc/default/tftpd-hpa:
-
-    ```
-    TFTP_USERNAME="tftp"
-    TFTP_DIRECTORY="/srv/tftp"
-    TFTP_ADDRESS=":69"
-    TFTP_OPTIONS="--secure"
-    RUN_DAEMON="yes"
-    OPTIONS="-l -s /srv/tftp"
-    ```
-
-18. Add the following to /etc/inetd.conf:
-
-    ```
-    tftp    dgram   udp    wait    root    /usr/sbin/in.tftpd /usr/sbin/in.tftpd -s /srv/tftp
-    ```
-
-19. Restart TFTP
-
-    sudo systemctl restart tftpd-hpa
-
-20. Check if it's running ok:
-
-    ```bash
-	lerwys@lerwysPC:~/Repos/Installation_instructions$ sudo systemctl status tftpd-hpa
-	● tftpd-hpa.service - LSB: HPA's tftp server
-	   Loaded: loaded (/etc/init.d/tftpd-hpa; bad; vendor preset: enabled)
-	   Active: active (running) since Seg 2018-03-05 14:06:37 -03; 3s ago
-	     Docs: man:systemd-sysv-generator(8)
-	  Process: 23372 ExecStop=/etc/init.d/tftpd-hpa stop (code=exited, status=0/SUCCESS)
-	  Process: 23384 ExecStart=/etc/init.d/tftpd-hpa start (code=exited, status=0/SUCCESS)
-	    Tasks: 1
-	   Memory: 192.0K
-	      CPU: 9ms
-	   CGroup: /system.slice/tftpd-hpa.service
-	           └─23399 /usr/sbin/in.tftpd --listen --user tftp --address :69 --secure /srv/tftp
-
-	Mar 05 14:06:37 lerwysPC systemd[1]: Starting LSB: HPA's tftp server...
-	Mar 05 14:06:37 lerwysPC tftpd-hpa[23384]:  * Starting HPA's tftpd in.tftpd
-	Mar 05 14:06:37 lerwysPC tftpd-hpa[23384]:    ...done.
-	Mar 05 14:06:37 lerwysPC systemd[1]: Started LSB: HPA's tftp server.
-    ```
-
-21. Add the following lines at the end of /etc/dhcp/dhcpd.conf
-
-    ```
-    allow booting;
-    allow bootp;
-    option option-128 code 128 = string;
-    option option-129 code 129 = text;
-    next-server 192.168.2.12;
-    filename "pxelinux.0";
-    ```
-
-22. Restart DHCP server
-
-    ```bash
-    sudo systemctl restart isc-dhcp-server
-    ```
+21. PXE server is ready to go. Reboot the client into PXE boot and wait for initizalization.
