@@ -50,28 +50,33 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
       max-lease-time 7200;
     }
 
-    host dell-r230-gbe1-test {
-      option domain-name-servers 192.168.2.1;
-      option domain-name "test-dig1.lan";
-      option routers 192.168.2.1;
-      option broadcast-address 192.168.2.255;
-      default-lease-time 600;
-      max-lease-time 7200;
-      hardware ethernet 50:9a:4c:75:ce:3d;
-    #  fixed-address 10.0.18.230;
-      fixed-address 192.168.2.230;
-    }
+    group {
 
-    host dell-r230-idrac-test {
-      option domain-name-servers 192.168.2.1;
-      option domain-name "test-dig2.lan";
-      option routers 192.168.2.1;
-      option broadcast-address 192.168.2.255;
-      default-lease-time 600;
-      max-lease-time 7200;
-      hardware ethernet 50:9a:4c:75:ce:3f;
-    #  fixed-address 10.0.18.231;
-      fixed-address 192.168.2.231;
+        use-host-decl-names on; # Forces hostname to host
+
+        host dell-r230-server-1 {
+          option domain-name-servers 192.168.2.1;
+          option domain-name "test-dig1.lan";
+          option routers 192.168.2.1;
+          option broadcast-address 192.168.2.255;
+          default-lease-time 600;
+          max-lease-time 7200;
+          hardware ethernet 50:9a:4c:75:ce:3d;
+        #  fixed-address 10.0.18.230;
+          fixed-address 192.168.2.230;
+        }
+
+        host dell-r230-server-1-idrac {
+          option domain-name-servers 192.168.2.1;
+          option domain-name "test-dig2.lan";
+          option routers 192.168.2.1;
+          option broadcast-address 192.168.2.255;
+          default-lease-time 600;
+          max-lease-time 7200;
+          hardware ethernet 50:9a:4c:75:ce:3f;
+        #  fixed-address 10.0.18.231;
+          fixed-address 192.168.2.231;
+        }
     }
     ```
 
