@@ -321,7 +321,7 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
 
         ```bash
         sudo bash -c 'cat << "EOF" > /srv/nfsroot/etc/auto.home
-        $HOST   192.168.2.12:/srv/nfshome/$HOST
+        nfshome   192.168.2.12:/srv/nfshome/$HOST
         EOF
         '
         ```
