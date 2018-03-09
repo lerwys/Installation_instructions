@@ -2,11 +2,11 @@
 
 References:
 
-https://www.ostechnix.com/install-dhcp-server-in-ubuntu-16-04/
-https://www.ostechnix.com/how-to-install-pxe-server-on-ubuntu-16-04/
-http://debianaddict.com/2012/06/19/diskless-debian-linux-booting-via-dhcppxenfstftp/
-https://www.linuxquestions.org/questions/blog/isaackuo-112178/diskless-pxe-netboot-how-to-for-debian-8-jessie-37169/
-http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
+[1](https://www.ostechnix.com/install-dhcp-server-in-ubuntu-16-04/)
+[2](https://www.ostechnix.com/how-to-install-pxe-server-on-ubuntu-16-04/)
+[3](http://debianaddict.com/2012/06/19/diskless-debian-linux-booting-via-dhcppxenfstftp/)
+[4](https://www.linuxquestions.org/questions/blog/isaackuo-112178/diskless-pxe-netboot-how-to-for-debian-8-jessie-37169/)
+[5](http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf)
 
 ## DHCP server
 
