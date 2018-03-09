@@ -255,14 +255,23 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     sudo debootstrap stable /srv/nfsroot http://ftp.us.debian.org/debian
     ```
 
-12. Install desired packages into the NFS:
+12. Configure user and password:
+    ```bash
+    sudo chroot /srv/nfsroot passwd root
+    sudo chroot /srv/nfsroot usermod -d /home/root root
+
+    sudo chroot /srv/nfsroot adduser server
+    ```
+
+13. Install desired packages into the NFS:
 
     ```bash
     sudo chroot /srv/nfsroot apt-get update
     sudo chroot /srv/nfsroot apt-get install -y \
         initramfs-tools \
         linux-image-amd64 \
-        autofs
+        autofs \
+        openssh-server
     ```
 
     1. Install Docker CE
@@ -321,19 +330,19 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
 
         ```bash
         sudo bash -c 'cat << "EOF" > /srv/nfsroot/etc/auto.home
-        nfshome   192.168.2.12:/srv/nfshome/$HOST
+        server   192.168.2.12:/srv/nfshome/$HOST
         EOF
         '
         ```
 
-13. Configure its initramfs to generate NFS-booting initrd's:
+14. Configure its initramfs to generate NFS-booting initrd's:
 
     ```bash
     sudo sed 's/MODULES=.*$/MODULES=netboot/' -i /srv/nfsroot/etc/initramfs-tools/initramfs.conf
     sudo bash -c "echo "BOOT=nfs" >> /srv/nfsroot/etc/initramfs-tools/initramfs.conf"
     ```
 
-14. Configure fstab:
+15. Configure fstab:
 
     ```bash
     sudo chroot /srv/nfsroot apt-get -y install nfs-common
@@ -351,18 +360,13 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     "
     ```
 
-15. Configure mtab
+16. Configure mtab
 
     ```bash
     sudo ln -s /proc/mounts /srv/nfsroot/etc/mtab
     ```
 
-16. Configure root user and password in NFS homes:
-
-    ```bash
-    sudo chroot /srv/nfsroot passwd root
-    sudo chroot /srv/nfsroot usermod -d /home/root root
-    ```
+17. Configure NFS homes:
 
     ```bash
     sudo mkdir -p /srv/nfshome/dell-r230-server-1
@@ -374,13 +378,13 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     sudo chmod 755 /srv/nfshome/dell-r230-server-1/user.txt
     ```
 
-17. Generate initrd
+18. Generate initrd
 
     ```bash
     sudo chroot /srv/nfsroot update-initramfs -u
     ```
 
-18. Copy support libraries from debian netboot to TFTP folder
+19. Copy support libraries from debian netboot to TFTP folder
 
     ```bash
     mkdir -p ~/Downloads/debian-netboot && cd ~/Downloads
@@ -393,7 +397,7 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     sudo ln -s bootlibs/ldlinux.c32 /srv/tftp/
     ```
 
-19. Copy generated initrd, kernel image, and pxe bootloader to tftp root and create folder for PXE config:
+20. Copy generated initrd, kernel image, and pxe bootloader to tftp root and create folder for PXE config:
 
     ```bash
     sudo cp /srv/nfsroot/boot/initrd.img-*-amd64 /srv/tftp/
@@ -402,7 +406,7 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     sudo mkdir /srv/tftp/pxelinux.cfg
     ```
 
-20. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
+21. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
 
     ```bash
     sudo bash -c "cat << EOF > /srv/tftp/pxelinux.cfg/default
@@ -416,4 +420,4 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     EOF
     "
     ```
-21. PXE server is ready to go. Reboot the client into PXE boot and wait for initizalization.
+22. PXE server is ready to go. Reboot the client into PXE boot and wait for initizalization.
