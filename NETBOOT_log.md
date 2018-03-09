@@ -454,25 +454,90 @@ by following the instructions in [Docker Installation Instructions](https://docs
     sudo ln -s /proc/mounts /srv/nfsroot/etc/mtab
     ```
 
-17. Configure NFS homes:
+18. Add bootstrap service for applications
+
+    ```bash
+    sudo bash -c "cat << EOF > /srv/nfsroot/etc/systemd/system/bootstrap-apps.service
+    [Unit]
+    Description=Bootstrap service to load applications
+    After=autofs.service
+    Wants=autofs.service
+    After=docker.service
+    Wants=docker.service
+
+    [Service]
+    ExecStart=/home/server/bootstrap-apps.sh
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+    "
+    ```
+
+    ```bash
+    sudo chroot /srv/nfsroot systemctl enable bootstrap-apps
+    ```
+
+19. Configure NFS homes:
 
     ```bash
     sudo mkdir -p /srv/nfshome/dell-r230-server-1
-    sudo bash -c 'echo "user" > /srv/nfshome/dell-r230-server-1/user.txt'
-    sudo chmod 755 /srv/nfshome/dell-r230-server-1/user.txt
+    sudo bash -c 'cat << 'EOF' > /srv/nfshome/dell-r230-server-1/bootstrap-apps.sh
+    #!/usr/bin/env bash
 
-    sudo mkdir -p /srv/nfshome/root
-    sudo bash -c 'echo "user" > /srv/nfshome/dell-r230-server-1/user.txt'
-    sudo chmod 755 /srv/nfshome/dell-r230-server-1/user.txt
+    # Testing Image
+    /usr/bin/docker pull \
+        digdockerregistry.com.br/dmm7510-epics-ioc:debian-9
+
+    /usr/bin/docker run \
+        --net host \
+        -t \
+        --rm \
+        --volumes-from dmm7510-epics-ioc-${DMM7510_INSTANCE}-volume \
+        --name dmm7510-epics-ioc-DCCT1 \
+        digdockerregistry.com.br/dmm7510-epics-ioc:debian-9 \
+        -i 10.0.18.37 \
+        -p 5025 \
+        -d DCCT1 \
+        -P TEST: \
+        -R DCCT:
+    EOF
+    '
+    sudo chmod 755 /srv/nfshome/dell-r230-server-1/bootstrap-apps.sh
+
+    sudo mkdir -p /srv/nfshome/dell-r230-server-2
+    sudo bash -c 'cat << 'EOF' > /srv/nfshome/dell-r230-server-2/bootstrap-apps.sh
+    #!/usr/bin/env bash
+
+    # Testing Image
+    /usr/bin/docker pull \
+        digdockerregistry.com.br/dmm7510-epics-ioc:debian-9
+
+    /usr/bin/docker run \
+        --net host \
+        -t \
+        --rm \
+        --volumes-from dmm7510-epics-ioc-${DMM7510_INSTANCE}-volume \
+        --name dmm7510-epics-ioc-DCCT1 \
+        digdockerregistry.com.br/dmm7510-epics-ioc:debian-9 \
+        -i 10.0.18.37 \
+        -p 5025 \
+        -d DCCT1 \
+        -P TEST: \
+        -R DCCT:
+    EOF
+    '
+    sudo chmod 755 /srv/nfshome/dell-r230-server-2/bootstrap-apps.sh
+
     ```
 
-18. Generate initrd
+20. Generate initrd
 
     ```bash
     sudo chroot /srv/nfsroot update-initramfs -u
     ```
 
-19. Copy support libraries from debian netboot to TFTP folder
+21. Copy support libraries from debian netboot to TFTP folder
 
     ```bash
     mkdir -p ~/Downloads/debian-netboot && cd ~/Downloads
@@ -485,7 +550,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
     sudo ln -s bootlibs/ldlinux.c32 /srv/tftp/
     ```
 
-20. Copy generated initrd, kernel image, and pxe bootloader to tftp root and create folder for PXE config:
+22. Copy generated initrd, kernel image, and pxe bootloader to tftp root and create folder for PXE config:
 
     ```bash
     sudo cp /srv/nfsroot/boot/initrd.img-*-amd64 /srv/tftp/
@@ -494,7 +559,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
     sudo mkdir /srv/tftp/pxelinux.cfg
     ```
 
-21. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
+23. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
 
     ```bash
     sudo bash -c "cat << EOF > /srv/tftp/pxelinux.cfg/default
@@ -508,4 +573,4 @@ by following the instructions in [Docker Installation Instructions](https://docs
     EOF
     "
     ```
-22. PXE server is ready to go. Reboot the client into PXE boot and wait for initizalization.
+24. PXE server is ready to go. Reboot the client into PXE boot and wait for initizalization.
