@@ -349,7 +349,7 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     ```
 
     ```bash
-    sudo chroot /srv/nfsroot mkdir -p /var/lib/docker
+    sudo chroot /srv/nfsroot mkdir -p /var/lib/docker /etc/docker
     ```
 
     ```bash
@@ -361,6 +361,7 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
     none                 /media     tmpfs   defaults   0 0
     none                 /var/log   tmpfs   defaults   0 0
     none                 /var/lib/docker   tmpfs   defaults   0 0
+    none                 /etc/docker   tmpfs   defaults   0 0
     EOF
     "
     ```
