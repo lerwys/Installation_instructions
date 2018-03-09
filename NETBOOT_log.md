@@ -339,6 +339,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
         initramfs-tools \
         linux-image-amd64 \
         autofs \
+        unionfs-fuse \
         openssh-server
     ```
 
@@ -424,7 +425,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
     ```
 
     ```bash
-    sudo chroot /srv/nfsroot mkdir -p /var/lib/docker /etc/docker
+    sudo chroot /srv/nfsroot mkdir -p /var/lib/docker /var/lib/docker.rw /etc/docker /etc/docker.rw
     ```
 
     ```bash
@@ -435,8 +436,10 @@ by following the instructions in [Docker Installation Instructions](https://docs
     none                 /var/tmp   tmpfs   defaults   0 0
     none                 /media     tmpfs   defaults   0 0
     none                 /var/log   tmpfs   defaults   0 0
-    none                 /var/lib/docker   tmpfs   defaults   0 0
-    none                 /etc/docker   tmpfs   defaults   0 0
+    none                 /etc/docker.rw   tmpfs   defaults   0 0
+    unionfs#/etc/docker.rw=rw:/etc/docker=ro /etc/docker fuse default_permissions,allow_other,use_ino,nonempty,suid,cow 0 0
+    none                 /var/lib/docker.rw   tmpfs   defaults   0 0
+    unionfs#/var/lib/docker.rw=rw:/var/lib/docker=ro /var/lib/docker fuse default_permissions,allow_other,use_ino,nonempty,suid,cow 0 0
     EOF
     "
     ```
