@@ -312,45 +312,18 @@ http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf
         sudo chroot /srv/nfsroot chmod +x /usr/local/bin/docker-compose
         ```
 
-    7. Configure automount in systemd
+    7. Setup autofs to mount the hostname home directory
 
         ```bash
-        sudo chroot /srv/nfsroot mkdir -p /home/nfshome
+        sudo bash -c 'echo -e "\n# Automount NFS partitions\n/home   /etc/auto.home" \
+            >> /srv/nfsroot/etc/auto.master'
         ```
 
         ```bash
-        sudo bash -c "cat << EOF > /srv/nfsroot/etc/systemd/system/home-nfshome.automount
-        [Unit]
-        Description=NFSHOME Automount
-
-        [Automount]
-        Where=/home/nfshome
-
-        [Install]
-        WantedBy=multi-user.target
+        sudo bash -c 'cat << "EOF" > /srv/nfsroot/etc/auto.home
+        nfshome   192.168.2.12:/srv/nfshome/$HOST
         EOF
-        "
-        ```
-
-        ```bash
-        sudo bash -c "cat << EOF > /srv/nfsroot/etc/systemd/system/home-nfshome.mount
-        [Unit]
-        Description=NFSHOME Mount
-
-        [Mount]
-        What=192.168.2.12:/srv/nfshome/%H
-        Where=/home/nfshome
-        Type=nfs
-
-        [Install]
-        WantedBy=multi-user.target
-        EOF
-        "
-        ```
-
-        ```bash
-        sudo chroot /srv/nfsroot systemctl enable home-nfshome.mount
-        sudo chroot /srv/nfsroot systemctl enable home-nfshome.automount
+        '
         ```
 
 13. Configure its initramfs to generate NFS-booting initrd's:
