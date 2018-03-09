@@ -150,7 +150,7 @@ References:
 3. We will store our initrd and boot loader under /srv/tftp and our NFS root filesystem under /srv/nfsroot and NFS home under/srv/nfshome:
 
     ```bash
-    sudo mkdir -p /srv/tftp /srv/nfsroot /srv/nfshome/{root,dell-r230-server-1,dell-r230-server-2}
+    sudo mkdir -p /srv/tftp /srv/nfsroot /srv/nfshome/{dell-r230-server-1,dell-r230-server-2}
     ```
 
 3. Configure tftp’s /etc/default/tftpd-hpa:
@@ -212,13 +212,11 @@ References:
     #/srv/nfshome 10.0.0.0/24(ro,no_root_squash,no_subtree_check)
     /srv/nfshome/dell-r230-server-1 10.0.0.0/24(rw,async,no_subtree_check,insecure)
     /srv/nfshome/dell-r230-server-2 10.0.0.0/24(rw,async,no_subtree_check,insecure)
-    /srv/nfshome/root 10.0.0.0/24(rw,async,no_subtree_check,insecure)
 
     /srv/nfsroot 192.168.2.0/24(rw,async,no_subtree_check,no_root_squash)
     #/srv/nfshome 192.168.2.0/24(ro,no_root_squash,no_subtree_check)
     /srv/nfshome/dell-r230-server-1 192.168.2.0/24(rw,async,no_subtree_check,insecure)
     /srv/nfshome/dell-r230-server-2 192.168.2.0/24(rw,async,no_subtree_check,insecure)
-    /srv/nfshome/root 192.168.2.0/24(rw,async,no_subtree_check,insecure)
     ```
 
 9. Check if NFS server is running ok:
