@@ -305,7 +305,14 @@ References:
         sudo chroot /srv/nfsroot apt-get install -y docker-ce
         ```
 
-    5. Install Docker Compose
+    5. Add docker group permissions
+
+        ```bash
+        sudo chroot /srv/nfsroot groupadd docker
+        sudo chroot /srv/nfsroot usermod -aG docker server
+        ```
+
+    6. Install Docker Compose
 
         ```bash
         sudo chroot /srv/nfsroot curl -L \
@@ -313,13 +320,13 @@ References:
             -o /usr/local/bin/docker-compose
         ```
 
-    6. Add executable permissions
+    7. Add executable permissions
 
         ```bash
         sudo chroot /srv/nfsroot chmod +x /usr/local/bin/docker-compose
         ```
 
-    7. Setup autofs to mount the hostname home directory
+    8. Setup autofs to mount the hostname home directory
 
         ```bash
         sudo bash -c 'echo -e "\n# Automount NFS partitions\n/home   /etc/auto.home" \
