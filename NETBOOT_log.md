@@ -339,7 +339,6 @@ by following the instructions in [Docker Installation Instructions](https://docs
         initramfs-tools \
         linux-image-amd64 \
         autofs \
-        unionfs-fuse \
         openssh-server
     ```
 
@@ -425,7 +424,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
     ```
 
     ```bash
-    sudo chroot /srv/nfsroot mkdir -p /var/lib/docker /var/lib/docker.rw /etc/docker /etc/docker.rw
+    sudo chroot /srv/nfsroot mkdir -p /var/lib/{docker,docker.rw,docker.work} /etc/{docker,docker.rw,docker.work}
     ```
 
     ```bash
@@ -437,9 +436,9 @@ by following the instructions in [Docker Installation Instructions](https://docs
     none                 /media     tmpfs   defaults   0 0
     none                 /var/log   tmpfs   defaults   0 0
     none                 /etc/docker.rw   tmpfs   defaults   0 0
-    unionfs#/etc/docker.rw=rw:/etc/docker=ro /etc/docker fuse default_permissions,allow_other,use_ino,nonempty,suid,cow 0 0
+    overlayfs            /etc/docker overlayfs   defaults,lowerdir=/etc/docker,upperdir=/etc/docker.rw,workdir=/etc/docker.work    0   0
     none                 /var/lib/docker.rw   tmpfs   defaults   0 0
-    unionfs#/var/lib/docker.rw=rw:/var/lib/docker=ro /var/lib/docker fuse default_permissions,allow_other,use_ino,nonempty,suid,cow 0 0
+    overlayfs            /var/lib/docker overlayfs   defaults,lowerdir=/var/lib/docker,upperdir=/var/lib/docker.rw,workdir=/var/lib/docker.work    0   0
     EOF
     "
     ```
