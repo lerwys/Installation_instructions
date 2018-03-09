@@ -441,7 +441,14 @@ by following the instructions in [Docker Installation Instructions](https://docs
     "
     ```
 
-16. Configure mtab
+
+16. Registry domain name in DNS or change the host /srv/nfsroot/etc/hosts:
+
+    ```bash
+    sudo bash -c 'echo "192.168.2.12 digdockerregistry.com.br" >> /srv/nfsroot/etc/hosts'
+    ```
+
+17. Configure mtab
 
     ```bash
     sudo ln -s /proc/mounts /srv/nfsroot/etc/mtab
