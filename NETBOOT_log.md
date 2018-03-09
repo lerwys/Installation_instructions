@@ -170,6 +170,9 @@ by following the instructions in [Docker Installation Instructions](https://docs
     ```bash
     sudo mkdir -p /srv/nfsroot/etc/docker/certs.d/digdockerregistry.com.br:443
     sudo cp /certs/domain.crt /srv/nfsroot/etc/docker/certs.d/digdockerregistry.com.br:443/ca.crt
+
+    sudo cp /certs/domain.crt /srv/nfsroot/usr/local/share/ca-certificates/digregistrydomain.com.br.crt
+    sudo chroot /srv/nfsroot update-ca-certificates
     ```
 
 3. Registry domain name in DNS or change the host /etc/hosts:
