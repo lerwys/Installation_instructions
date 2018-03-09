@@ -139,6 +139,73 @@ References:
     Mar 05 13:44:53 lerwysPC dhcpd[22331]: Server starting service.
     ```
 
+
+## Docker Registry (TESTING ONLY, using self-signed certificates)
+
+This assumes docker-ce and docker-compose have been previously installed
+by following the instructions in [Docker Installation Instructions](https://docs.docker.com/install/)
+
+1. Generate your own certificate:
+
+    ```bash
+    sudo mkdir -p /certs
+
+    sudo openssl req \
+        -newkey rsa:4096 -nodes -sha256 -keyout /certs/domain.key \
+        -x509 -days 365 -out /certs/domain.crt
+    ```
+
+    Be sure to use digdockerregistry.com.br as the CN
+
+    ```bash
+    sudo mkdir -p /etc/docker/certs.d/digdockerregistry.com.br:443
+    sudo cp /certs/domain.crt /etc/docker/certs.d/digdockerregistry.com.br:443/ca.crt
+
+    sudo cp /certs/domain.crt /usr/local/share/ca-certificates/digregistrydomain.com.br.crt
+    sudo update-ca-certificates
+    ```
+
+2. Copy generated .crt to NFS home (to be done after configuring PXE server and /srv/nfsroot)
+
+    ```bash
+    sudo mkdir -p /srv/nfsroot/etc/docker/certs.d/digdockerregistry.com.br:443
+    sudo cp /certs/domain.crt /srv/nfsroot/etc/docker/certs.d/digdockerregistry.com.br:443/ca.crt
+    ```
+
+3. Registry domain name in DNS or change the host /etc/hosts:
+
+    ```bash
+    sudo bash -c 'echo "192.168.2.12 digdockerregistry.com.br" >> /etc/hosts'
+    ```
+
+4. Restart docker engine
+
+    ```bash
+    sudo systemctl restart docker
+    ```
+
+5. Run Docker registry
+
+    ```bash
+    docker run -d \
+      --restart=always \
+      --name registry \
+      -v /certs:/certs \
+      -e REGISTRY_HTTP_ADDR=0.0.0.0:443 \
+      -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
+      -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
+      -p 443:443 \
+      registry:2
+    ```
+
+6. Push images with tag digdockerregistry.com.br
+
+    Example:
+    ```bash
+    docker tag lnlsidg/dmm7510-epics-ioc:debian-9 digdockerregistry.com.br/dmm7510-epics-ioc:debian-9
+    docker push digdockerregistry.com.br/dmm7510-epics-ioc:debian-9
+    ```
+
 ## PXE server
 
 1. Install TFTP, NFS, debootstrap
