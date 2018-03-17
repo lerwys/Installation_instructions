@@ -424,7 +424,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
     ```
 
     ```bash
-    sudo chroot /srv/nfsroot mkdir -p /var/lib/{docker,docker.rw,docker.work} /etc/{docker,docker.rw,docker.work}
+    sudo chroot /srv/nfsroot mkdir -p /var/lib/{docker,docker.rw} /etc/{docker,docker.rw}
     ```
 
     ```bash
@@ -436,13 +436,12 @@ by following the instructions in [Docker Installation Instructions](https://docs
     none                 /media     tmpfs   defaults   0 0
     none                 /var/log   tmpfs   defaults   0 0
     none                 /etc/docker.rw   tmpfs   defaults   0 0
-    overlayfs            /etc/docker overlayfs   defaults,lowerdir=/etc/docker,upperdir=/etc/docker.rw,workdir=/etc/docker.work    0   0
+    overlayfs            /etc/docker overlayfs   defaults,lowerdir=/etc/docker,upperdir=/etc/docker.rw/rw,workdir=/etc/docker.rw/work    0   0
     none                 /var/lib/docker.rw   tmpfs   defaults   0 0
-    overlayfs            /var/lib/docker overlayfs   defaults,lowerdir=/var/lib/docker,upperdir=/var/lib/docker.rw,workdir=/var/lib/docker.work    0   0
+    overlayfs            /var/lib/docker overlayfs   defaults,lowerdir=/var/lib/docker,upperdir=/var/lib/docker.rw/rw,workdir=/var/lib/docker.rw/work    0   0
     EOF
     "
     ```
-
 
 16. Registry domain name in DNS or change the host /srv/nfsroot/etc/hosts:
 
