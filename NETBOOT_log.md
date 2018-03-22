@@ -350,7 +350,8 @@ by following the instructions in [Docker Installation Instructions](https://docs
              ca-certificates \
              curl \
              gnupg2 \
-             software-properties-common
+             software-properties-common \
+             lvm2
         ```
 
     2. Add GPG key:
