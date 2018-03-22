@@ -436,11 +436,40 @@ by following the instructions in [Docker Installation Instructions](https://docs
     none                 /media     tmpfs   defaults   0 0
     none                 /var/log   tmpfs   defaults   0 0
     none                 /etc/docker.rw   tmpfs   defaults   0 0
-    overlayfs            /etc/docker overlayfs   defaults,lowerdir=/etc/docker,upperdir=/etc/docker.rw/rw,workdir=/etc/docker.rw/work    0   0
     none                 /var/lib/docker.rw   tmpfs   defaults   0 0
-    overlayfs            /var/lib/docker overlayfs   defaults,lowerdir=/var/lib/docker,upperdir=/var/lib/docker.rw/rw,workdir=/var/lib/docker.rw/work    0   0
     EOF
     "
+    ```
+
+    ```bash
+    sudo bash -c 'cat << EOF > /srv/nfsroot/etc/systemd/system/mount-docker-overlay.service
+    [Unit]
+    Description=Bootstrap service to load applications
+    RequiresMountsFor=/etc/docker.rw
+    RequiresMountsFor=/var/lib/docker.rw
+    Before=docker.service
+    Requires=docker.service
+
+    [Service]
+    ExecStart=/bin/sh -c " \
+        /bin/mkdir -p /etc/docker.rw/rw && \
+        /bin/mkdir -p /etc/docker.rw/workdir && \
+        /bin/mkdir -p /var/lib/docker.rw/rw && \
+        /bin/mkdir -p /var/lib/docker.rw/workdir && \
+        /bin/mount -t overlay overlay \
+            -olowerdir=/etc/docker,upperdir=/etc/docker.rw/rw,workdir=/etc/docker.rw/workdir /etc/docker && \
+        /bin/mount -t overlay overlay \
+            -olowerdir=/var/lib/docker,upperdir=/var/lib/docker.rw/rw,workdir=/var/lib/docker.rw/workdir /var/lib/docker \
+    "
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+    '
+    ```
+
+    ```bash
+    sudo chroot /srv/nfsroot systemctl enable mount-docker-overlay
     ```
 
 16. Registry domain name in DNS or change the host /srv/nfsroot/etc/hosts:
@@ -465,6 +494,8 @@ by following the instructions in [Docker Installation Instructions](https://docs
     Wants=autofs.service
     After=docker.service
     Wants=docker.service
+    After=mount-docker-overlay.service
+    Requires=mount-docker-overlay.service
 
     [Service]
     ExecStart=/home/server/bootstrap-apps.sh
