@@ -521,24 +521,31 @@ by following the instructions in [Docker Installation Instructions](https://docs
 
     ```bash
     sudo mkdir -p /srv/nfshome/dell-r230-server-1
-    sudo bash -c 'cat << 'EOF' > /srv/nfshome/dell-r230-server-1/bootstrap-apps.sh
+    sudo bash -c 'cat << "EOF" > /srv/nfshome/dell-r230-server-1/bootstrap-apps.sh
     #!/usr/bin/env bash
 
     set -ueo pipefail
 
     DMM7510_INSTANCE=DCCT1
+    IMAGE_VERSION=debian-9
 
     # Testing Image
     /usr/bin/docker pull \
-        digdockerregistry.com.br/dmm7510-epics-ioc:debian-9
+        digdockerregistry.com.br/dmm7510-epics-ioc:${IMAGE_VERSION}
+
+    /usr/bin/docker create \
+        -v /opt/epics/startup/ioc/dmm7510-epics-ioc/iocBoot/iocdmm7510/autosave \
+        --name dmm7510-epics-ioc-${DMM7510_INSTANCE}-volume \
+        lnlsdig/dmm7510-epics-ioc:${IMAGE_VERSION} \
+        2>/dev/null || true
 
     /usr/bin/docker run \
         --net host \
         -t \
         --rm \
         --volumes-from dmm7510-epics-ioc-${DMM7510_INSTANCE}-volume \
-        --name dmm7510-epics-ioc-DCCT1 \
-        digdockerregistry.com.br/dmm7510-epics-ioc:debian-9 \
+        --name dmm7510-epics-ioc-${DMM7510_INSTANCE} \
+        digdockerregistry.com.br/dmm7510-epics-ioc:${IMAGE_VERSION} \
         -i 10.0.18.37 \
         -p 5025 \
         -d DCCT1 \
@@ -549,23 +556,31 @@ by following the instructions in [Docker Installation Instructions](https://docs
     sudo chmod 755 /srv/nfshome/dell-r230-server-1/bootstrap-apps.sh
 
     sudo mkdir -p /srv/nfshome/dell-r230-server-2
-    sudo bash -c 'cat << 'EOF' > /srv/nfshome/dell-r230-server-2/bootstrap-apps.sh
+    sudo bash -c 'cat << "EOF" > /srv/nfshome/dell-r230-server-2/bootstrap-apps.sh
     #!/usr/bin/env bash
 
     set -ueo pipefail
 
     DMM7510_INSTANCE=DCCT2
+    IMAGE_VERSION=debian-9
+
     # Testing Image
     /usr/bin/docker pull \
-        digdockerregistry.com.br/dmm7510-epics-ioc:debian-9
+        digdockerregistry.com.br/dmm7510-epics-ioc:${IMAGE_VERSION}
+
+    /usr/bin/docker create \
+        -v /opt/epics/startup/ioc/dmm7510-epics-ioc/iocBoot/iocdmm7510/autosave \
+        --name dmm7510-epics-ioc-${DMM7510_INSTANCE}-volume \
+        lnlsdig/dmm7510-epics-ioc:${IMAGE_VERSION} \
+        2>/dev/null || true
 
     /usr/bin/docker run \
         --net host \
         -t \
         --rm \
         --volumes-from dmm7510-epics-ioc-${DMM7510_INSTANCE}-volume \
-        --name dmm7510-epics-ioc-DCCT1 \
-        digdockerregistry.com.br/dmm7510-epics-ioc:debian-9 \
+        --name dmm7510-epics-ioc-${DMM7510_INSTANCE} \
+        digdockerregistry.com.br/dmm7510-epics-ioc:${IMAGE_VERSION} \
         -i 10.0.18.37 \
         -p 5025 \
         -d DCCT1 \
