@@ -402,15 +402,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
         ```bash
         sudo bash -c 'cat << "EOF" > /srv/nfsroot/etc/docker/daemon.json
         {
-          "storage-driver": "devicemapper",
-          "storage-opts": [
-            "dm.directlvm_device=/dev/xvdf",
-            "dm.thinp_percent=95",
-            "dm.thinp_metapercent=1",
-            "dm.thinp_autoextend_threshold=80",
-            "dm.thinp_autoextend_percent=20",
-            "dm.directlvm_device_force=false"
-          ]
+          "storage-driver": "overlay2"
         }
         EOF
         '
