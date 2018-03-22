@@ -444,7 +444,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
     ```
 
     ```bash
-    sudo chroot /srv/nfsroot mkdir -p /var/lib/{docker,docker.rw} /etc/{docker,docker.rw}
+    sudo chroot /srv/nfsroot mkdir -p /var/lib/docker /etc/{docker,docker.rw}
     ```
 
     ```bash
@@ -456,7 +456,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
     none                 /media     tmpfs   defaults   0 0
     none                 /var/log   tmpfs   defaults   0 0
     none                 /etc/docker.rw   tmpfs   defaults   0 0
-    none                 /var/lib/docker.rw   tmpfs   defaults   0 0
+    none                 /var/lib/docker   tmpfs   defaults   0 0
     EOF
     "
     ```
@@ -466,7 +466,6 @@ by following the instructions in [Docker Installation Instructions](https://docs
     [Unit]
     Description=Bootstrap service to load applications
     RequiresMountsFor=/etc/docker.rw
-    RequiresMountsFor=/var/lib/docker.rw
     Before=docker.service
     Requires=docker.service
 
@@ -474,12 +473,8 @@ by following the instructions in [Docker Installation Instructions](https://docs
     ExecStart=/bin/sh -c " \
         /bin/mkdir -p /etc/docker.rw/rw && \
         /bin/mkdir -p /etc/docker.rw/workdir && \
-        /bin/mkdir -p /var/lib/docker.rw/rw && \
-        /bin/mkdir -p /var/lib/docker.rw/workdir && \
         /bin/mount -t overlay overlay \
-            -olowerdir=/etc/docker,upperdir=/etc/docker.rw/rw,workdir=/etc/docker.rw/workdir /etc/docker && \
-        /bin/mount -t overlay overlay \
-            -olowerdir=/var/lib/docker,upperdir=/var/lib/docker.rw/rw,workdir=/var/lib/docker.rw/workdir /var/lib/docker \
+            -olowerdir=/etc/docker,upperdir=/etc/docker.rw/rw,workdir=/etc/docker.rw/workdir /etc/docker \
     "
 
     [Install]
