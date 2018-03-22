@@ -536,7 +536,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
     /usr/bin/docker create \
         -v /opt/epics/startup/ioc/dmm7510-epics-ioc/iocBoot/iocdmm7510/autosave \
         --name dmm7510-epics-ioc-${DMM7510_INSTANCE}-volume \
-        lnlsdig/dmm7510-epics-ioc:${IMAGE_VERSION} \
+        digdockerregistry.com.br/dmm7510-epics-ioc:${IMAGE_VERSION} \
         2>/dev/null || true
 
     /usr/bin/docker run \
@@ -571,7 +571,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
     /usr/bin/docker create \
         -v /opt/epics/startup/ioc/dmm7510-epics-ioc/iocBoot/iocdmm7510/autosave \
         --name dmm7510-epics-ioc-${DMM7510_INSTANCE}-volume \
-        lnlsdig/dmm7510-epics-ioc:${IMAGE_VERSION} \
+        digdockerregistry.com.br/dmm7510-epics-ioc:${IMAGE_VERSION} \
         2>/dev/null || true
 
     /usr/bin/docker run \
