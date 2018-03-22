@@ -396,7 +396,26 @@ by following the instructions in [Docker Installation Instructions](https://docs
         sudo chroot /srv/nfsroot chmod +x /usr/local/bin/docker-compose
         ```
 
-    8. Setup autofs to mount the hostname home directory
+    8. Change default Docker Storage Driver to device-mapper
+
+        ```bash
+        sudo bash -c 'cat << "EOF" > /srv/nfsroot/etc/docker/daemon.json
+        {
+          "storage-driver": "devicemapper",
+          "storage-opts": [
+            "dm.directlvm_device=/dev/xdf",
+            "dm.thinp_percent=95",
+            "dm.thinp_metapercent=1",
+            "dm.thinp_autoextend_threshold=80",
+            "dm.thinp_autoextend_percent=20",
+            "dm.directlvm_device_force=false"
+          ]
+        }
+        EOF
+        '
+        ```
+
+    9. Setup autofs to mount the hostname home directory
 
         ```bash
         sudo bash -c 'echo -e "\n# Automount NFS partitions\n/home   /etc/auto.home" \
