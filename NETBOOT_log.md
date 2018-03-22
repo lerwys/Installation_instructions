@@ -440,7 +440,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
     ```
 
     ```bash
-    sudo bash -c "cat << EOF > /srv/nfsroot/etc/fstab
+    sudo bash -c "cat << "EOF" > /srv/nfsroot/etc/fstab
     proc                 /proc      proc    defaults   0 0
     /dev/nfs             /          nfs     tcp,nolock 0 0
     none                 /tmp       tmpfs   defaults   0 0
@@ -454,7 +454,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
     ```
 
     ```bash
-    sudo bash -c 'cat << EOF > /srv/nfsroot/etc/systemd/system/mount-docker-overlay.service
+    sudo bash -c 'cat << "EOF" > /srv/nfsroot/etc/systemd/system/mount-docker-overlay.service
     [Unit]
     Description=Mount /etc/docker as an overlay fielsystem
     RequiresMountsFor=/etc/docker.rw
@@ -494,7 +494,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
 18. Add bootstrap service for applications
 
     ```bash
-    sudo bash -c "cat << EOF > /srv/nfsroot/etc/systemd/system/bootstrap-apps.service
+    sudo bash -c "cat << "EOF" > /srv/nfsroot/etc/systemd/system/bootstrap-apps.service
     [Unit]
     Description=Bootstrap service to load applications
     After=autofs.service
@@ -623,7 +623,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
 23. Configure boot loader. Put the following into /srv/tftp/pxelinux.cfg/default:
 
     ```bash
-    sudo bash -c "cat << EOF > /srv/tftp/pxelinux.cfg/default
+    sudo bash -c "cat << "EOF" > /srv/tftp/pxelinux.cfg/default
     # boot diskless computer with debian stretch
     default Debian
     prompt 1
