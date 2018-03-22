@@ -404,7 +404,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
         {
           "storage-driver": "devicemapper",
           "storage-opts": [
-            "dm.directlvm_device=/dev/xdf",
+            "dm.directlvm_device=/dev/xvdf",
             "dm.thinp_percent=95",
             "dm.thinp_metapercent=1",
             "dm.thinp_autoextend_threshold=80",
