@@ -524,6 +524,8 @@ by following the instructions in [Docker Installation Instructions](https://docs
     sudo bash -c 'cat << 'EOF' > /srv/nfshome/dell-r230-server-1/bootstrap-apps.sh
     #!/usr/bin/env bash
 
+
+    DMM7510_INSTANCE=DCCT1
     # Testing Image
     /usr/bin/docker pull \
         digdockerregistry.com.br/dmm7510-epics-ioc:debian-9
@@ -548,6 +550,8 @@ by following the instructions in [Docker Installation Instructions](https://docs
     sudo bash -c 'cat << 'EOF' > /srv/nfshome/dell-r230-server-2/bootstrap-apps.sh
     #!/usr/bin/env bash
 
+
+    DMM7510_INSTANCE=DCCT2
     # Testing Image
     /usr/bin/docker pull \
         digdockerregistry.com.br/dmm7510-epics-ioc:debian-9
