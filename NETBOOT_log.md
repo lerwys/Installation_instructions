@@ -456,7 +456,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
     ```bash
     sudo bash -c 'cat << EOF > /srv/nfsroot/etc/systemd/system/mount-docker-overlay.service
     [Unit]
-    Description=Bootstrap service to load applications
+    Description=Mount /etc/docker as an overlay fielsystem
     RequiresMountsFor=/etc/docker.rw
     Before=docker.service
     Requires=docker.service
