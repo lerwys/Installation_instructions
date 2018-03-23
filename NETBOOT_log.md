@@ -26,14 +26,14 @@ References:
 
     ```
     [...]
-    INTERFACES="eth2"
+    INTERFACES="enp5s0"
     ```
 
 4. Enter the domain name and domain-name-servers in dhcpd.conf:
 
     ```
-    option domain-name-servers 10.0.18.1;
-    option routers 10.0.18.1;
+    option domain-name-servers 192.168.2.1;
+    option routers 192.168.2.1;
     ```
 
 5. Configure server to ONLY supply IPs to specified MAC addresses in dhcpd.conf:
