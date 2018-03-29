@@ -8,6 +8,12 @@ References:
 [4](https://www.linuxquestions.org/questions/blog/isaackuo-112178/diskless-pxe-netboot-how-to-for-debian-8-jessie-37169/)
 [5](http://www.iram.fr/~blanchet/tutorials/read-only_diskless_debian9.pdf)
 
+## Warning
+
+This must be used as a reference in building your own NFS rootfs. If needed
+a complete script to build the NFS rootfs is available here:
+https://github.com/lerwys/debian-rootfs
+
 ## DHCP server
 
 1. Install DHCP server
