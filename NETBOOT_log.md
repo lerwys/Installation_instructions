@@ -269,9 +269,9 @@ by following the instructions in [Docker Installation Instructions](https://docs
 7. Mount special filesystems:
 
     ```bash
-    sudo mount -t proc proc /srv/nfsroot/proc/
-    sudo mount -t sysfs sys /srv/nfsroot/sys/
-    sudo mount -o bind /dev /srv/nfsroot/dev/
+    sudo ln -sf /proc/mounts /srv/nfsroot/etc/mtab
+    sudo mkdir -p /srv/nfsroot/proc/self/fd && \
+        sudo ln -sf /proc/self/fd /srv/nfsroot/dev || true
     ```
 
 8. Our nfsroot and nfshome needs to be mountable via NFS. Export them to our local network by putting the following in /etc/exports:
