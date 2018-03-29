@@ -275,9 +275,9 @@ by following the instructions in [Docker Installation Instructions](https://docs
 7. Mount special filesystems:
 
     ```bash
-    sudo ln -sf /proc/mounts /srv/nfsroot/etc/mtab
-    sudo mkdir -p /srv/nfsroot/proc/self/fd && \
-        sudo ln -sf /proc/self/fd /srv/nfsroot/dev || true
+    sudo ln -sf /proc/mounts ${ROOTFS}/etc/mtab
+    sudo chroot ${ROOTFS} mount -t proc proc /proc
+    sudo ln -sf /proc/self/fd ${ROOTFS}/dev || true
     ```
 
 8. Our nfsroot and nfshome needs to be mountable via NFS. Export them to our local network by putting the following in /etc/exports:
@@ -640,3 +640,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
     "
     ```
 24. PXE server is ready to go. Reboot the client into PXE boot and wait for initizalization.
+
+25. Unmount special filesystems from rootfs
+
+sudo bash -c "chroot /srv/nfsroot/ umount /proc || true"
