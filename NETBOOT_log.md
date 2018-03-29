@@ -396,7 +396,7 @@ by following the instructions in [Docker Installation Instructions](https://docs
         sudo chroot /srv/nfsroot chmod +x /usr/local/bin/docker-compose
         ```
 
-    8. Change default Docker Storage Driver to device-mapper
+    8. Change default Docker Storage Driver to overlay2
 
         ```bash
         sudo bash -c 'cat << "EOF" > /srv/nfsroot/etc/docker/daemon.json
